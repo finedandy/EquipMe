@@ -18,7 +18,7 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace EquipMe
 {
-    class EquipMe : HBPlugin
+    public class EquipMe : HBPlugin
     {
 
         #region variables
@@ -119,7 +119,7 @@ namespace EquipMe
         {
             get
             {
-                return new Version(1, 2, 1);
+                return new Version(1, 3);
             }
         }
 
@@ -137,6 +137,14 @@ namespace EquipMe
             if (_theSettings == null)
             {
                 _theSettings = new EquipMeSettings();
+            }
+        }
+
+        public WeightSet GetCurrentWeightSet
+        {
+            get
+            {
+                return _currentWeightSet;
             }
         }
 
