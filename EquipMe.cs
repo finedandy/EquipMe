@@ -28,14 +28,13 @@ namespace EquipMe
         private bool _doUpdateWeights;
         private readonly string _cachedPath = Logging.ApplicationPath + "\\Settings\\EquipMeWeights.txt";
         private readonly List<WeightSet> _availableWeightSets = new List<WeightSet>();
-        private readonly Dictionary<string, float> _masteryWorkaround = new Dictionary<string, float>();
         private WeightSet _currentWeightSet;
         private DateTime _nextPulseTime = DateTime.Now;
         private readonly WebClient _downloadClient = new WebClient();
         private const string WeightSetUrl = "http://www.wowhead.com/data=weight-presets";
         private readonly Dictionary<string, Stat> _wowheadStatList = new Dictionary<string, Stat>
         {
-            //{ "mastrtng", Stat.None }, // no mastery entry in stat
+            { "mastrtng", Stat.Mastery },
             { "str", Stat.Strength },
             { "hitrtng", Stat.HitRating },
             { "exprtng", Stat.ExpertiseRating },
@@ -178,7 +177,6 @@ namespace EquipMe
         private void UpdateWeightSets()
         {
             _availableWeightSets.Clear();
-            _masteryWorkaround.Clear();
             _currentWeightSet = null;
             string weightsetstring;
             if (_theSettings.UseCachedWeights)
@@ -243,17 +241,6 @@ namespace EquipMe
                     {
                         continue;
                     }
-                    // mastery work around
-                    if (statname == "mastrtng")
-                    {
-                        try
-                        {
-                            float mastery = float.Parse(statline.Substring(statline.IndexOf(":") + 1));
-                            _masteryWorkaround.Add(weightsetname, mastery);
-                        }
-                        catch (Exception) { }
-                        continue;
-                    }
                     // otherwise if we don't have the stat, skip it
                     if (!_wowheadStatList.ContainsKey(statname))
                     {
@@ -299,7 +286,7 @@ namespace EquipMe
                 "local totalpointspent = 0; " +
                 "for i=1,3 do " +
                     "local id, _, _, _, pointsspent = GetTalentTabInfo(i); " +
-                    "totalpointspent = totalpointspent + pointsspent; " + 
+                    "totalpointspent = totalpointspent + pointsspent; " +
                     "if pointsspent >= pointspec then " +
                         "pointspec = pointsspent; " +
                         "primaryId = id; " +
@@ -347,10 +334,6 @@ namespace EquipMe
                     {
                         Log("- " + kvp.Key + " = " + kvp.Value);
                     }
-                    if (_masteryWorkaround.ContainsKey(set.Name))
-                    {
-                        Log("- Mastery = " + _masteryWorkaround[set.Name]);
-                    }
                 }
                 _currentWeightSet = set;
                 break;
@@ -361,7 +344,7 @@ namespace EquipMe
 
         #region item score
 
-        // calculates an item score taking into account mastery
+        // calculates an item score
         private float CalcScore(WoWItem item)
         {
             float score;
@@ -372,16 +355,6 @@ namespace EquipMe
             else
             {
                 score = _currentWeightSet.EvaluateItem(item);
-                if (_masteryWorkaround.ContainsKey(_currentWeightSet.Name))
-                {
-                    for (var i = 0; i < item.ItemInfo.StatId.Length; i++)
-                    {
-                        if (item.ItemInfo.StatId[i] == 49)
-                        {
-                            score += _masteryWorkaround[_currentWeightSet.Name] * item.ItemInfo.StatValue[i];
-                        }
-                    }
-                }
             }
             return score;
         }
@@ -534,7 +507,8 @@ namespace EquipMe
                     // find the best bag item that we can equip and fits in the slot
                     // have to do this seperately because comparing inventory slots seems currently broken
                     foundbagitems = from i in StyxWoW.Me.BagItems
-                                    where InventoryManager.GetInventorySlotsByEquipSlot(i.ItemInfo.InventoryType).Contains(targetslot)
+                                    where _theSettings.OnlyEquipArmourType >= 0 && (int)i.ItemInfo.ArmorClass == _theSettings.OnlyEquipArmourType
+                                    && InventoryManager.GetInventorySlotsByEquipSlot(i.ItemInfo.InventoryType).Contains(targetslot)
                                     && !_theSettings.BlacklistedEquipQualities.Contains(i.Quality)
                                     orderby CalcScore(i) descending
                                     select i;
@@ -550,7 +524,8 @@ namespace EquipMe
                     currentscore = CalcScore(invitem);
                     // find the best bag item that's better than it
                     foundbagitems = from i in StyxWoW.Me.BagItems
-                                    where i.ItemInfo.InventoryType == invitem.ItemInfo.InventoryType
+                                    where _theSettings.OnlyEquipArmourType >= 0 && (int)i.ItemInfo.ArmorClass == _theSettings.OnlyEquipArmourType
+                                    && i.ItemInfo.InventoryType == invitem.ItemInfo.InventoryType
                                     && CalcScore(i) > currentscore
                                     && !_theSettings.BlacklistedEquipQualities.Contains(i.Quality)
                                     orderby CalcScore(i) descending
@@ -620,6 +595,9 @@ namespace EquipMe
 
             [Setting, DefaultValue(true)]
             public bool IgnoreHeirlooms { get; set; }
+
+            [Setting, DefaultValue(-1)]
+            public int OnlyEquipArmourType { get; set; }
 
             public List<WoWInventorySlot> BlacklistedInventorySlots
             {
@@ -739,6 +717,17 @@ namespace EquipMe
                                     };
             cachedweights.Click += CachedweightsClick;
 
+            var labelonlyequiparmourtype = new Label { Text = "Only equip armour type", AutoSize = true };
+            var onlyequiparmourtype = new ComboBox();
+            foreach (var index in from WoWItemArmorClass quality in Enum.GetValues(typeof(WoWItemArmorClass))
+                                  let index = onlyequiparmourtype.Items.Add(quality)
+                                  where _theSettings.OnlyEquipArmourType == (int)quality
+                                  select index)
+            {
+                onlyequiparmourtype.SelectedIndex = index;
+            }
+            onlyequiparmourtype.SelectedValueChanged += onlyequiparmourtype_SelectedValueChanged;
+
             var panel = new FlowLayoutPanel
                             {
                                 FlowDirection = FlowDirection.TopDown,
@@ -752,6 +741,8 @@ namespace EquipMe
             panel.Controls.Add(badquality);
             panel.Controls.Add(cachedweights);
             panel.Controls.Add(updateweightsets);
+            panel.Controls.Add(labelonlyequiparmourtype);
+            panel.Controls.Add(onlyequiparmourtype);
 
             var form = new Form();
             form.FormClosing += FormFormClosing;
@@ -764,6 +755,11 @@ namespace EquipMe
             form.StartPosition = FormStartPosition.CenterParent;
             form.Controls.Add(panel);
             return form;
+        }
+
+        void onlyequiparmourtype_SelectedValueChanged(object sender, EventArgs e)
+        {
+            _theSettings.OnlyEquipArmourType = (int)((ComboBox)sender).SelectedValue;
         }
 
         void CachedweightsClick(object sender, EventArgs e)
@@ -828,5 +824,6 @@ namespace EquipMe
         }
 
         #endregion
+
     }
 }
