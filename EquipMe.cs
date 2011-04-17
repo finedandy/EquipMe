@@ -12,7 +12,6 @@ using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Inventory;
-using Styx.Patchables;
 using Styx.Plugins.PluginClass;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
