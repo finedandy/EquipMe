@@ -164,6 +164,7 @@ namespace EquipMe
                 Log("Error downloading weight presents from wowhead");
                 Log(e.Message);
             }
+            Log("Weights downloaded (" + result.Length + ")");
             return result;
         }
 
@@ -216,6 +217,7 @@ namespace EquipMe
                     // save a copy of the results just in case
                     try
                     {
+                        Log("Updating local weightset");
                         File.WriteAllText(_cachedPath, weightsetstring);
                     }
                     catch (Exception)
@@ -283,6 +285,7 @@ namespace EquipMe
                     axlstats.Add(Stat.Armor, 1);
                 }
                 // add the weight set
+                Log("Adding weightset: " + weightsetname);
                 _availableWeightSets.Add(new WeightSet(weightsetname, axlstats));
             }
         }
@@ -328,7 +331,7 @@ namespace EquipMe
                 }
 
                 var talentTabId = int.Parse(ret[0]);
-                //Log("Talent Tab Id: " + talentTabId);
+                Log("Talent Tab Id: " + talentTabId + " spec: " + TalentTabIds[talentTabId].ToLower());
                 if (talentTabId != 0)
                 {
                     if (!TalentTabIds.ContainsKey(talentTabId) || !TalentTabIds[talentTabId].ToLower().StartsWith(spec))
