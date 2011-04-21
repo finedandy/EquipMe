@@ -307,10 +307,13 @@ namespace EquipMe
                     "primaryId = 0; " +
                 "end " +
                 "return primaryId, select(5, GetTalentInfo(2,11)); ").ToArray();
+            var talentTabId = int.Parse(ret[0]);
             var isdruidtankspecced = ret[1] != "0";
             foreach (var set in _availableWeightSets.Where(s => s.Name.StartsWith(StyxWoW.Me.Class.ToString())))
             {
                 var spec = set.Name.Substring(set.Name.IndexOf(".") + 1);
+                Log("Talent Tab Id: " + talentTabId + " spec: " + TalentTabIds[talentTabId].ToLower());
+
                 if (spec.EndsWith("dps"))
                 {
                     if (StyxWoW.Me.Class == WoWClass.DeathKnight)
@@ -330,8 +333,8 @@ namespace EquipMe
                     }
                 }
 
-                var talentTabId = int.Parse(ret[0]);
-                Log("Talent Tab Id: " + talentTabId + " spec: " + TalentTabIds[talentTabId].ToLower());
+                Log("Parsed spec: " + spec);
+
                 if (talentTabId != 0)
                 {
                     if (!TalentTabIds.ContainsKey(talentTabId) || !TalentTabIds[talentTabId].ToLower().StartsWith(spec))
