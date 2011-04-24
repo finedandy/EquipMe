@@ -362,13 +362,17 @@ namespace EquipMe
                     {
                         continue;
                     }
-                    // otherwise if we don't have the stat, skip it
-                    if (!_wowheadStatList.ContainsKey(statname))
+                    var stattype = Stat.None;
+                    // grab the stat from the wowhead list
+                    if (_wowheadStatList.ContainsKey(statname))
                     {
-                        continue;
+                        stattype = _wowheadStatList[statname];
                     }
-                    // grab the stat
-                    Stat stattype = _wowheadStatList[statname];
+                    // otherwise if it's a stat by name
+                    else if (Enum.GetNames(typeof(Stat)).Contains(statname))
+                    {
+                        stattype = (Stat)Enum.Parse(typeof(Stat), statname);
+                    }
                     // skip it if it's bs
                     if (stattype == Stat.None)
                     {
@@ -849,6 +853,7 @@ namespace EquipMe
 
             var labelonlyequiparmourtype = new Label { Text = "Only equip armour type", AutoSize = true };
             var onlyequiparmourtype = new ComboBox();
+            onlyequiparmourtype.DropDownStyle = ComboBoxStyle.DropDownList;
             foreach (var index in from WoWItemArmorClass quality in Enum.GetValues(typeof(WoWItemArmorClass))
                                   let index = onlyequiparmourtype.Items.Add(quality)
                                   where _theSettings.OnlyEquipArmourType == (int)quality
@@ -889,7 +894,7 @@ namespace EquipMe
 
         void onlyequiparmourtype_SelectedValueChanged(object sender, EventArgs e)
         {
-            _theSettings.OnlyEquipArmourType = (int)((ComboBox)sender).SelectedValue;
+            _theSettings.OnlyEquipArmourType = (int)((ComboBox)sender).SelectedItem;
         }
 
         void CachedweightsClick(object sender, EventArgs e)
