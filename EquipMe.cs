@@ -57,20 +57,32 @@ namespace EquipMe
             { "feratkpwr", Stat.AttackPowerInForms }
         };
 
+        private List<string> _luaEvents = new List<string>()
+        {
+            "ACTIVE_TALENT_GROUP_CHANGED",
+            "CHARACTER_POINTS_CHANGED",
+            "START_LOOT_ROLL",
+            "CONFIRM_DISENCHANT_ROLL",
+            "CONFIRM_LOOT_ROLL"
+        };
+
+        private enum LootRollType
+        {
+            Pass = 0,
+            Need = 1,
+            Greed = 2,
+            Disenchant = 3
+        }
+                                         
+
         #endregion
 
         #region override
 
         public override void Initialize()
         {
+            _luaEvents.ForEach(evt => Lua.Events.AttachEvent(evt, HandleLuaEvent));
             CheckSettings();
-            Lua.Events.AttachEvent("ACTIVE_TALENT_GROUP_CHANGED", HandleActiveTalentGroupChanged);
-            Lua.Events.AttachEvent("CHARACTER_POINTS_CHANGED", HandleActiveTalentGroupChanged);
-        }
-
-        public void HandleActiveTalentGroupChanged(object sender, LuaEventArgs args)
-        {
-            CheckWeightSet();
         }
 
         public override bool WantButton
@@ -125,11 +137,70 @@ namespace EquipMe
 
         #endregion
 
+        #region lua events
+
+        public void HandleLuaEvent(object sender, LuaEventArgs args)
+        {
+            if (args.EventName == "START_LOOT_ROLL")
+            {
+                var rollid = toint(args.Args[0].ToString());
+                var ret = Lua.GetReturnValues("return select(3, string.find(GetLootRollItemLink(" + rollid + "), 'item:(%d+):')), select(6, GetLootRollItemInfo(" + rollid + "))");
+                var itemid = touint(ret[0]);
+                if (itemid <= 0)
+                {
+                    return;
+                }
+                bool canNeed = ret.Count > 1 ? tobool(ret[1]) : false;
+                bool canGreed = ret.Count > 2 ? tobool(ret[2]) : false;
+                bool canDisenchant = ret.Count > 3 ? tobool(ret[3]) : false;
+                var rolltype = canDisenchant ? LootRollType.Disenchant : canGreed ? LootRollType.Greed : LootRollType.Pass;
+                var item = ItemInfo.FromId(itemid);
+                if (item.ArmorClass != WoWItemArmorClass.None && StyxWoW.Me.CanEquipItem(item))
+                {
+                    var score = CalcScore(item);
+                    var otheritem = StyxWoW.Me.Inventory.GetItemBySlot((uint)item.EquipSlot);
+                    var otherscore = CalcScore(otheritem);
+                    if (score > otherscore)
+                    {
+                        rolltype = canNeed ? LootRollType.Need : canGreed ? LootRollType.Greed : LootRollType.Pass;
+                    }
+                    Log("Rolling " + rolltype.ToString() + " on " + item.Name + ", score: " + score + " (equipped: " + otheritem.Name + ", score: " + otherscore + ")");
+                }
+                else
+                {
+                    Log("Rolling " + rolltype.ToString() + " on " + item.Name);
+                }
+                Lua.DoString("RollOnLoot(" + rollid + "," + (int)rolltype + ")");
+            }
+            else if (args.EventName.StartsWith("CONFIRM"))
+            {
+                Lua.DoString("ConfirmLootRoll(" + args.Args[0] + "," + args.Args[1] + ")");
+            }
+            else
+            {
+                CheckWeightSet();
+            }
+        }
+
+        #endregion
+
         #region helper
 
         private static void Log(string s)
         {
-            Logging.Write(Color.DarkSlateGray, "[EquipMe] " + s);
+            Log(s, false);
+        }
+
+        private static void Log(string s, bool debug)
+        {
+            if (debug)
+            {
+                Logging.WriteDebug(Color.DarkSlateGray, "[EquipMe] " + s);
+            }
+            else
+            {
+                Logging.Write(Color.DarkSlateGray, "[EquipMe] " + s);
+            }
         }
 
         private void CheckSettings()
@@ -148,6 +219,46 @@ namespace EquipMe
             }
         }
 
+        public static int toint(string s)
+        {
+            try
+            {
+                return int.Parse(s);
+            }
+            catch (Exception) { }
+            return 0;
+        }
+
+        public static uint touint(string s)
+        {
+            try
+            {
+                return uint.Parse(s);
+            }
+            catch (Exception) { }
+            return 0;
+        }
+
+        public static float tofloat(string s)
+        {
+            try
+            {
+                return float.Parse(s);
+            }
+            catch (Exception) { }
+            return 0f;
+        }
+
+        public static bool tobool(string s)
+        {
+            try
+            {
+                return bool.Parse(s);
+            }
+            catch (Exception) { }
+            return false;
+        }
+
         #endregion
 
         #region weight set
@@ -164,7 +275,7 @@ namespace EquipMe
                 Log("Error downloading weight presents from wowhead");
                 Log(e.Message);
             }
-            Log("Weights downloaded (" + result.Length + ")");
+            Log("Weights downloaded (" + result.Length + ")", true);
             return result;
         }
 
@@ -217,7 +328,7 @@ namespace EquipMe
                     // save a copy of the results just in case
                     try
                     {
-                        Log("Updating local weightset");
+                        Log("Updating local weightset", true);
                         File.WriteAllText(_cachedPath, weightsetstring);
                     }
                     catch (Exception)
@@ -231,7 +342,7 @@ namespace EquipMe
                 var m = Regex.Match(line, @"(\d+): {");
                 if (m.Success)
                 {
-                    var i = int.Parse(line.Substring(0, line.IndexOf(":")));
+                    var i = toint(line.Substring(0, line.IndexOf(":")));
                     currentclass = (WoWClass)i;
                 }
                 if (!line.Contains("__icon"))
@@ -266,7 +377,7 @@ namespace EquipMe
                     // add it to the list of actual stats
                     try
                     {
-                        float statval = float.Parse(statline.Substring(statline.IndexOf(":") + 1));
+                        float statval = tofloat(statline.Substring(statline.IndexOf(":") + 1));
                         axlstats.Add(stattype, statval);
                     }
                     catch (Exception)
@@ -285,7 +396,7 @@ namespace EquipMe
                     axlstats.Add(Stat.Armor, 1);
                 }
                 // add the weight set
-                Log("Adding weightset: " + weightsetname);
+                Log("Adding weightset: " + weightsetname, true);
                 _availableWeightSets.Add(new WeightSet(weightsetname, axlstats));
             }
         }
@@ -307,12 +418,12 @@ namespace EquipMe
                     "primaryId = 0; " +
                 "end " +
                 "return primaryId, select(5, GetTalentInfo(2,11)); ").ToArray();
-            var talentTabId = int.Parse(ret[0]);
+            var talentTabId = toint(ret[0]);
+            Log("Talent Tab Id: " + talentTabId + " spec: " + TalentTabIds[talentTabId].ToLower());
             var isdruidtankspecced = ret[1] != "0";
             foreach (var set in _availableWeightSets.Where(s => s.Name.StartsWith(StyxWoW.Me.Class.ToString())))
             {
                 var spec = set.Name.Substring(set.Name.IndexOf(".") + 1);
-                Log("Talent Tab Id: " + talentTabId + " spec: " + TalentTabIds[talentTabId].ToLower());
 
                 if (spec.EndsWith("dps"))
                 {
@@ -358,13 +469,18 @@ namespace EquipMe
 
         #region item score
 
-        // calculates an item score
         private float CalcScore(WoWItem item)
         {
+            return CalcScore(item.ItemInfo);
+        }
+
+        // calculates an item score
+        private float CalcScore(ItemInfo item)
+        {
             float score;
-            if (item.ItemInfo.BagSlots > 0)
+            if (item.BagSlots > 0)
             {
-                score = item.ItemInfo.BagSlots;
+                score = item.BagSlots;
             }
             else
             {
@@ -626,7 +742,7 @@ namespace EquipMe
                     {
                         try
                         {
-                            ret.Add((WoWInventorySlot)int.Parse(s));
+                            ret.Add((WoWInventorySlot)toint(s));
                         }
                         catch (Exception) { }
                     }
@@ -659,7 +775,7 @@ namespace EquipMe
                     {
                         try
                         {
-                            ret.Add((WoWItemQuality)int.Parse(s));
+                            ret.Add((WoWItemQuality)toint(s));
                         }
                         catch (Exception) { }
                     }
