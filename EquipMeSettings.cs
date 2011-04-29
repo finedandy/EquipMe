@@ -36,19 +36,14 @@ namespace EquipMe
         }
 
         /// <summary>
-        /// Destructor, just in case
-        /// </summary>
-        ~EquipMeSettings()
-        {
-            SaveSettings();
-        }
-
-        /// <summary>
         /// (re)loads settings
         /// </summary>
         public void LoadSettings()
         {
             _currentSpec = null;
+            _blacklistedItems.Clear();
+            _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+            //
             try
             {
                 base.LoadFromXML(XElement.Load(GetSettingsPath(false)));
@@ -71,6 +66,10 @@ namespace EquipMe
         /// </summary>
         public void SaveSettings()
         {
+            _currentSpec = null;
+            _blacklistedItems.Clear();
+            _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+            //
             base.SaveToFile(GetSettingsPath(false));
             XElement saveElm = File.Exists(GetSettingsPath(true)) ? XElement.Load(GetSettingsPath(true)) : new XElement("WeightSet");
             saveElm.SetAttributeValue("Name", WeightSet_Current.Name);
@@ -104,6 +103,17 @@ namespace EquipMe
         #endregion
 
         #region settings
+
+        /// <summary>
+        /// A list of items that have been checked and deemed "not equippable"
+        /// Cleared when you level up or change spec
+        /// </summary>
+        public List<ulong> _blacklistedItems = new List<ulong>();
+
+        /// <summary>
+        /// Determines a point of time in the future when the next Pulse() method should run
+        /// </summary>
+        public DateTime _nextPulse = DateTime.Now;
 
         #region weightsets
 
@@ -220,6 +230,8 @@ namespace EquipMe
             set
             {
                 WeightSet_Current = new WeightSet(value, WeightSet_Current.Weights);
+                _blacklistedItems.Clear();
+                _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
             }
         }
 

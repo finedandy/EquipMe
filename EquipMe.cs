@@ -15,20 +15,9 @@ namespace EquipMe
         #region local variables
 
         /// <summary>
-        /// A list of items that have been checked and deemed "not equippable"
-        /// Cleared when you level up or change spec
-        /// </summary>
-        private List<ulong> _blacklistedItems = new List<ulong>();
-
-        /// <summary>
         /// Instance of the settings form
         /// </summary>
         private EquipMeGui _settingsForm;
-
-        /// <summary>
-        /// Determines a point of time in the future when the next Pulse() method should run
-        /// </summary>
-        private DateTime _nextPulse = DateTime.Now;
 
         /// <summary>
         /// A list of lua events to hook
@@ -98,6 +87,7 @@ namespace EquipMe
         public override void Initialize()
         {
             RegisterLuaEvents();
+            HandleLuaEvent(null, new LuaEventArgs("PLUGIN.INIT", 0, null));
         }
 
         public override void Dispose()
@@ -148,12 +138,11 @@ namespace EquipMe
                 }
                 else if (args.EventName == "ITEM_PUSH") // pulse shortly after we get an item
                 {
-                    _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                    EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                 }
                 else // catches spec change and new talent point placements to reload config
                 {
                     Log("Reading new settings (context:{0})", args.EventName);
-                    _blacklistedItems.Clear();
                     EquipMeSettings.Instance.LoadSettings();
                     if (string.Equals(EquipMeSettings.Instance.WeightSetName, "blank", StringComparison.OrdinalIgnoreCase))
                     {
@@ -175,7 +164,7 @@ namespace EquipMe
         public override void Pulse()
         {
             // don't, just don't
-            if (StyxWoW.Me == null || !StyxWoW.IsInGame || !StyxWoW.IsInWorld || _nextPulse > DateTime.Now)
+            if (StyxWoW.Me == null || !StyxWoW.IsInGame || !StyxWoW.IsInWorld || EquipMeSettings.Instance._nextPulse > DateTime.Now)
             {
                 return;
             }
@@ -193,14 +182,11 @@ namespace EquipMe
             }
             else // otherwise set to pulsefreq in settings and continue
             {
-                _nextPulse = DateTime.Now + TimeSpan.FromSeconds(EquipMeSettings.Instance.PulseFrequency);
+                EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(EquipMeSettings.Instance.PulseFrequency);
             }
 
-            WoWItem itm = StyxWoW.Me.BagItems.FirstOrDefault(ret => ret.Name.StartsWith("Runed"));
-            itm.UseContainerItem();
-
             // enumerate each item
-            foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !_blacklistedItems.Contains(i.Guid)))
+            foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance._blacklistedItems.Contains(i.Guid)))
             {
                 var item_score = CalcScore(item_inv.ItemInfo, null);
                 var emptySlot = InventorySlot.None;
@@ -208,7 +194,7 @@ namespace EquipMe
                 {
                     Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, emptySlot);
                     Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)emptySlot);
-                    _nextPulse = DateTime.Now;
+                    EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                     return;
                 }
                 else
@@ -219,18 +205,18 @@ namespace EquipMe
                     {
                         continue;
                     }
-                    var worst_item = equipped_items.OrderBy(ret => ret.Value).FirstOrDefault();
-                    if (worst_item.Key != null)
+                    var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
+                    if (worst_item.Key != null && item_score > worst_item.Value.score)
                     {
-                        Log("Equipping {0} (score: {1}) over equipped {2} (score: {3})", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value);
-                        Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)worst_item.Key.ItemInfo.EquipSlot + 1);
-                        _nextPulse = DateTime.Now;
+                        Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, (int)worst_item.Value.slot);
+                        Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)worst_item.Value.slot);
+                        EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                         return;
                     }
                 }
 
                 // blacklist if we didn't equip it
-                _blacklistedItems.Add(item_inv.Guid);
+                EquipMeSettings.Instance._blacklistedItems.Add(item_inv.Guid);
             }
         }
 

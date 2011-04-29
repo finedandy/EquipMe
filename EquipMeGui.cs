@@ -25,7 +25,6 @@ namespace EquipMe
         private void EquipMeGui_FormClosing(object sender, FormClosingEventArgs e)
         {
             EquipMeSettings.Instance.SaveSettings();
-            EquipMeSettings.Instance.LoadSettings();
         }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
@@ -35,6 +34,7 @@ namespace EquipMe
 
         private void button1_Click(object sender, EventArgs e)
         {
+            EquipMe.Log("Updating weights from wowhead");
             EquipMe.UpdateWowhead();
             UpdatePropertyGrids();
         }
@@ -61,7 +61,6 @@ namespace EquipMe
                         return;
                     }
                     EquipMeSettings.Instance.WeightSet_Current = loadedset;
-                    EquipMeSettings.Instance.SaveSettings();
                 }
             }
             catch (Exception ex)
@@ -227,5 +226,6 @@ namespace EquipMe
         }
 
         #endregion
+
     }
 }

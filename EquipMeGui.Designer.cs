@@ -116,6 +116,7 @@
             this.button3.TabIndex = 11;
             this.button3.Text = "Load Weight File";
             this.button3.UseVisualStyleBackColor = false;
+            this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
             // checkBox1
             // 
@@ -129,6 +130,7 @@
             this.checkBox1.TabIndex = 10;
             this.checkBox1.Text = "Show weight settings with 0 value";
             this.checkBox1.UseVisualStyleBackColor = false;
+            this.checkBox1.Click += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
             // button1
             // 
@@ -139,6 +141,7 @@
             this.button1.TabIndex = 9;
             this.button1.Text = "Update weights from Wowhead";
             this.button1.UseVisualStyleBackColor = false;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // button2
             // 
@@ -148,6 +151,7 @@
             this.button2.TabIndex = 8;
             this.button2.Text = "Reload Settings";
             this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
             // EquipMeGui
             // 

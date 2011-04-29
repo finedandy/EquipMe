@@ -135,7 +135,7 @@ namespace EquipMe
                     var equipped_items = GetReplaceableItems(roll_iteminfo);
                     foreach (var equipped_item_kvp in equipped_items)
                     {
-                        if (roll_itemscore > equipped_item_kvp.Value)
+                        if (roll_itemscore > equipped_item_kvp.Value.score)
                         {
                             Log(" - Equipped: {0}, score: {1}", equipped_item_kvp.Key.Name, equipped_item_kvp.Value);
                             need_item = true;
@@ -272,7 +272,6 @@ namespace EquipMe
                 {
                     Log("Unable to determine weight set, using lowbie");
                     EquipMeSettings.Instance.WeightSet_Current = EquipMeSettings.WeightSet_Lowbie;
-                    EquipMeSettings.Instance.SaveSettings();
                 }
                 else
                 {
@@ -310,7 +309,6 @@ namespace EquipMe
 
                         Log("Found wowhead weight set: {0}", set.Name);
                         EquipMeSettings.Instance.WeightSet_Current = set;
-                        EquipMeSettings.Instance.SaveSettings();
                         break;
                     }
                 }
@@ -587,17 +585,10 @@ namespace EquipMe
         public static bool HasEmpty(InventoryType type, out InventorySlot emptySlot)
         {
             emptySlot = InventorySlot.None;
-            if (type == InventoryType.None)
-            {
-                return false;
-            }
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(type))
             {
-                if (slot == InventorySlot.None)
-                {
-                    continue;
-                }
-                if (StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot) == null)
+                var equipped_item = StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot - 1);
+                if (equipped_item == null)
                 {
                     emptySlot = slot;
                     return true;
@@ -606,56 +597,62 @@ namespace EquipMe
             return false;
         }
 
+        public struct ItemSlotInto
+        {
+            public float score;
+            public InventorySlot slot;
+        }
+
         /// <summary>
         /// Gets a list of replaceable items (if any) taking into account whether or not we can equip the item, and user settings
         /// </summary>
         /// <param name="item">item to check against</param>
         /// <returns>list of potential item replacements</returns>
-        public static Dictionary<WoWItem, float> GetReplaceableItems(ItemInfo item)
+        public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item)
         {
             // check if we can even equip the item
             if (!StyxWoW.Me.CanEquipItem(item))
             {
-                return new Dictionary<WoWItem, float>();
+                return new Dictionary<WoWItem, ItemSlotInto>();
             }
             // dont equip it if it's not the armour type we want
             if (EquipMeSettings.Instance.OnlyEquipArmourType != WoWItemArmorClass.None && EquipMeSettings.Instance.OnlyEquipArmourType != item.ArmorClass)
             {
-                return new Dictionary<WoWItem, float>();
+                return new Dictionary<WoWItem, ItemSlotInto>();
             }
             // don't try to equip anything for a blacklisted slot
             if (EquipMeSettings.Instance.BlacklistedSlots.Split(',').Any(slotval =>
                 ToInteger(slotval) == (int)item.InventoryType ||
                 string.Equals(slotval.Trim(), item.InventoryType.ToString(), StringComparison.OrdinalIgnoreCase)))
             {
-                return new Dictionary<WoWItem, float>();
+                return new Dictionary<WoWItem, ItemSlotInto>();
             }
             // if it's not an item type that can be equipped
             if (item.InventoryType == InventoryType.None)
             {
-                return new Dictionary<WoWItem, float>();
+                return new Dictionary<WoWItem, ItemSlotInto>();
             }
             // dont try to equip anything for a blacklisted boe quality
             if (item.Bond == WoWItemBondType.OnEquip)
             {
                 if (EquipMeSettings.Instance.IngoreEpicBOE && item.Quality == WoWItemQuality.Epic)
                 {
-                    return new Dictionary<WoWItem, float>();
+                    return new Dictionary<WoWItem, ItemSlotInto>();
                 }
                 // dont try to equip anything for a blacklisted item quality
                 if (EquipMeSettings.Instance.IgnoreRareBOE && item.Quality == WoWItemQuality.Rare)
                 {
-                    return new Dictionary<WoWItem, float>();
+                    return new Dictionary<WoWItem, ItemSlotInto>();
                 }
             }
-            var equipped_items = new Dictionary<WoWItem, float>();
+            var equipped_items = new Dictionary<WoWItem, ItemSlotInto>();
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
                 if (slot == InventorySlot.None)
                 {
                     continue;
                 }
-                var equipped_item = StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot);
+                var equipped_item = StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot - 1);
                 if (equipped_item == null)
                 {
                     continue;
@@ -665,7 +662,10 @@ namespace EquipMe
                 {
                     continue;
                 }
-                equipped_items.Add(equipped_item, CalcScore(equipped_item.ItemInfo, null));
+                var isl = new ItemSlotInto();
+                isl.score = CalcScore(equipped_item.ItemInfo, null);
+                isl.slot = slot;
+                equipped_items.Add(equipped_item, isl);
             }
             return equipped_items;
         }
