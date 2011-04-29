@@ -186,14 +186,14 @@ namespace EquipMe
         [Setting]
         [DefaultValue(true)]
         [Category("General")]
-        [DisplayName("Ingore Epic BOE")]
+        [DisplayName("Ignore Epic BOE")]
         [Description("Doesn't try to equip epic (purple) bind on equip items.")]
         public bool IngoreEpicBOE { get; set; }
 
         [Setting]
         [DefaultValue(false)]
         [Category("General")]
-        [DisplayName("Ingore Rare BOE")]
+        [DisplayName("Ignore Rare BOE")]
         [Description("Doesn't try to equip rare (blue) bind on equip items.")]
         public bool IgnoreRareBOE { get; set; }
 
