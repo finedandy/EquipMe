@@ -132,7 +132,7 @@ namespace EquipMe
                 else
                 {
                     // get a list of equipped items and their scores
-                    var equipped_items = GetReplaceableItems(roll_iteminfo);
+                    var equipped_items = GetReplaceableItems(roll_iteminfo, false);
                     foreach (var equipped_item_kvp in equipped_items)
                     {
                         if (roll_itemscore > equipped_item_kvp.Value.score)
@@ -608,7 +608,7 @@ namespace EquipMe
         /// </summary>
         /// <param name="item">item to check against</param>
         /// <returns>list of potential item replacements</returns>
-        public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item)
+        public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item, bool isBound)
         {
             // check if we can even equip the item
             if (!StyxWoW.Me.CanEquipItem(item))
@@ -633,7 +633,7 @@ namespace EquipMe
                 return new Dictionary<WoWItem, ItemSlotInto>();
             }
             // dont try to equip anything for a blacklisted boe quality
-            if (item.Bond == WoWItemBondType.OnEquip)
+            if (item.Bond == WoWItemBondType.OnEquip && !isBound)
             {
                 if (EquipMeSettings.Instance.IngoreEpicBOE && item.Quality == WoWItemQuality.Epic)
                 {
@@ -648,6 +648,7 @@ namespace EquipMe
             var equipped_items = new Dictionary<WoWItem, ItemSlotInto>();
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
+                //Log("Slot in: {0}, slot out: {1}", item.InventoryType, slot);
                 if (slot == InventorySlot.None)
                 {
                     continue;
@@ -665,6 +666,7 @@ namespace EquipMe
                 var isl = new ItemSlotInto();
                 isl.score = CalcScore(equipped_item.ItemInfo, null);
                 isl.slot = slot;
+                //Log("Equipped item: {0} - {1}", equipped_item.Name, isl.score);
                 equipped_items.Add(equipped_item, isl);
             }
             return equipped_items;

@@ -200,12 +200,13 @@ namespace EquipMe
                 else
                 {
                     // get a list of equipped items and their scores
-                    var equipped_items = GetReplaceableItems(item_inv.ItemInfo);
+                    var equipped_items = GetReplaceableItems(item_inv.ItemInfo, item_inv.IsSoulbound);
                     if (equipped_items.Count <= 0)
                     {
                         continue;
                     }
                     var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
+                    //Log("Checking item {0} - {1}", item_inv, item_score);
                     if (worst_item.Key != null && item_score > worst_item.Value.score)
                     {
                         Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, (int)worst_item.Value.slot);
