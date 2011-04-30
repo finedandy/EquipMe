@@ -16,14 +16,20 @@ namespace EquipMe
 
         #region save/load
 
+        public enum SettingsType
+        {
+            Settings,
+            Weights
+        }
+
         /// <summary>
         /// Returns a settings path updated with current deets
         /// </summary>
         /// <param name="weights">if it's a weights file or otherwise just a settings file</param>
         /// <returns>path to settings</returns>
-        public string GetSettingsPath(bool weights)
+        public string GetSettingsPath(SettingsType type)
         {
-            return Logging.ApplicationPath + "\\Settings\\EquipMe\\EquipMe_" + StyxWoW.Me.Name + "_" + EquipMe.GetSpecName() + (UsePVP && Styx.Logic.Battlegrounds.IsInsideBattleground ? "_PVP" : "") + "_" + (weights ? "Weights" : "Settings") + ".xml";
+            return Logging.ApplicationPath + "\\Settings\\EquipMe\\EquipMe_" + StyxWoW.Me.Name + "_" + EquipMe.GetSpecName() + (UsePVP && Styx.Logic.Battlegrounds.IsInsideBattleground ? "_PVP" : "") + "_" + type.ToString() + ".xml";
         }
 
         /// <summary>
@@ -41,16 +47,19 @@ namespace EquipMe
         public void LoadSettings()
         {
             _currentSpec = null;
-            _blacklistedItems.Clear();
-            _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+            BlacklistedInventoryItems.Clear();
+            NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+            //
+
             //
             try
             {
-                base.LoadFromXML(XElement.Load(GetSettingsPath(false)));
+                base.LoadFromXML(XElement.Load(GetSettingsPath(SettingsType.Settings)));
             }
             catch (Exception) { }
-            EquipMe.Log("Loading weights from: {0}", GetSettingsPath(true));
-            var newset = EquipMe.LoadWeightSetFromXML(GetSettingsPath(true));
+            var _path = GetSettingsPath(SettingsType.Weights);
+            EquipMe.Log("Loading weights from: {0}", _path);
+            var newset = EquipMe.LoadWeightSetFromXML(_path);
             if (newset != null)
             {
                 WeightSet_Current = newset;
@@ -67,17 +76,18 @@ namespace EquipMe
         public void SaveSettings()
         {
             _currentSpec = null;
-            _blacklistedItems.Clear();
-            _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+            BlacklistedInventoryItems.Clear();
+            NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
             //
-            base.SaveToFile(GetSettingsPath(false));
-            XElement saveElm = File.Exists(GetSettingsPath(true)) ? XElement.Load(GetSettingsPath(true)) : new XElement("WeightSet");
+            base.SaveToFile(GetSettingsPath(SettingsType.Settings));
+            var _path = GetSettingsPath(SettingsType.Weights);
+            XElement saveElm = File.Exists(_path) ? XElement.Load(_path) : new XElement("WeightSet");
             saveElm.SetAttributeValue("Name", WeightSet_Current.Name);
             foreach (KeyValuePair<Stat, float> setval in WeightSet_Current.Weights)
             {
                 saveElm.SetElementValue(setval.Key.ToString(), setval.Value);
             }
-            saveElm.Save(GetSettingsPath(true));
+            saveElm.Save(_path);
         }
 
         #endregion
@@ -108,12 +118,12 @@ namespace EquipMe
         /// A list of items that have been checked and deemed "not equippable"
         /// Cleared when you level up or change spec
         /// </summary>
-        public List<ulong> _blacklistedItems = new List<ulong>();
+        public List<ulong> BlacklistedInventoryItems = new List<ulong>();
 
         /// <summary>
         /// Determines a point of time in the future when the next Pulse() method should run
         /// </summary>
-        public DateTime _nextPulse = DateTime.Now;
+        public DateTime NextPulse = DateTime.Now;
 
         #region weightsets
 
@@ -205,13 +215,6 @@ namespace EquipMe
         public bool IgnoreHeirlooms { get; set; }
 
         [Setting]
-        [DefaultValue(WoWItemArmorClass.None)]
-        [Category("General")]
-        [DisplayName("Only Equip Armour")]
-        [Description("Will only try to equip armour of this type.")]
-        public WoWItemArmorClass OnlyEquipArmourType { get; set; }
-
-        [Setting]
         [DefaultValue(30)]
         [Category("General")]
         [DisplayName("Pulse Frequency")]
@@ -230,8 +233,8 @@ namespace EquipMe
             set
             {
                 WeightSet_Current = new WeightSet(value, WeightSet_Current.Weights);
-                _blacklistedItems.Clear();
-                _nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                BlacklistedInventoryItems.Clear();
+                NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
             }
         }
 
@@ -295,6 +298,34 @@ namespace EquipMe
                 return StyxWoW.Me.Class.ToString();
             }
         }
+
+        [Setting]
+        [DefaultValue(WoWItemArmorClass.None)]
+        [Category("Character")]
+        [DisplayName("Only Equip Armour")]
+        [Description("Will only try to equip armour of this type (None = equips all item types).")]
+        public WoWItemArmorClass OnlyEquipArmourType { get; set; }
+
+        [Setting]
+        [DefaultValue(WoWItemWeaponClass.None)]
+        [Category("Character")]
+        [DisplayName("Main Hand")]
+        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types).")]
+        public WoWItemWeaponClass WeaponMainHand { get; set; }
+
+        [Setting]
+        [DefaultValue(WoWItemWeaponClass.None)]
+        [Category("Character")]
+        [DisplayName("Off Hand")]
+        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types).")]
+        public WoWItemWeaponClass WeaponOffHand { get; set; }
+
+        [Setting]
+        [DefaultValue(WoWItemWeaponClass.None)]
+        [Category("Character")]
+        [DisplayName("Ranged")]
+        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types).")]
+        public WoWItemWeaponClass WeaponRanged { get; set; }
 
         #endregion
 

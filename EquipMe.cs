@@ -5,7 +5,6 @@ using Styx;
 using Styx.Logic.Inventory;
 using Styx.Plugins.PluginClass;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 namespace EquipMe
 {
@@ -138,7 +137,7 @@ namespace EquipMe
                 }
                 else if (args.EventName == "ITEM_PUSH") // pulse shortly after we get an item
                 {
-                    EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                 }
                 else // catches spec change and new talent point placements to reload config
                 {
@@ -164,7 +163,7 @@ namespace EquipMe
         public override void Pulse()
         {
             // don't, just don't
-            if (StyxWoW.Me == null || !StyxWoW.IsInGame || !StyxWoW.IsInWorld || EquipMeSettings.Instance._nextPulse > DateTime.Now)
+            if (StyxWoW.Me == null || !StyxWoW.IsInGame || !StyxWoW.IsInWorld || EquipMeSettings.Instance.NextPulse > DateTime.Now)
             {
                 return;
             }
@@ -182,19 +181,19 @@ namespace EquipMe
             }
             else // otherwise set to pulsefreq in settings and continue
             {
-                EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(EquipMeSettings.Instance.PulseFrequency);
+                EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(EquipMeSettings.Instance.PulseFrequency);
             }
 
             // enumerate each item
-            foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance._blacklistedItems.Contains(i.Guid)))
+            foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(i.Guid)))
             {
                 var item_score = CalcScore(item_inv.ItemInfo, null);
                 var emptySlot = InventorySlot.None;
-                if (HasEmpty(item_inv.ItemInfo.InventoryType, out emptySlot) && item_score > 0)
+                if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
                 {
                     Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, emptySlot);
                     Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)emptySlot);
-                    EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                     return;
                 }
                 else
@@ -211,13 +210,13 @@ namespace EquipMe
                     {
                         Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, (int)worst_item.Value.slot);
                         Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)worst_item.Value.slot);
-                        EquipMeSettings.Instance._nextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                        EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                         return;
                     }
                 }
 
                 // blacklist if we didn't equip it
-                EquipMeSettings.Instance._blacklistedItems.Add(item_inv.Guid);
+                EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
             }
         }
 

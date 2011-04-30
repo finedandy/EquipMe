@@ -124,7 +124,7 @@ namespace EquipMe
                 var need_item = false;
                 // if there's an empty slot
                 var emptySlot = InventorySlot.None;
-                if (HasEmpty(roll_iteminfo.InventoryType, out emptySlot) && roll_itemscore > 0)
+                if (HasEmpty(roll_iteminfo, out emptySlot) && roll_itemscore > 0)
                 {
                     Log("Found empty slot: {0}", emptySlot);
                     need_item = true;
@@ -577,16 +577,45 @@ namespace EquipMe
 
         #region get replaceable items
 
+        public static bool CanEquipWeapon(InventorySlot slot, WoWItemWeaponClass clazz)
+        {
+            // don't equip mainhand weapons not of specified type
+            if (slot == InventorySlot.MainHandSlot && EquipMeSettings.Instance.WeaponMainHand != WoWItemWeaponClass.None &&
+                clazz != EquipMeSettings.Instance.WeaponMainHand)
+            {
+                return false;
+            }
+            // don't equip offhand weapons not of specified type
+            if (slot == InventorySlot.SecondaryHandSlot && EquipMeSettings.Instance.WeaponOffHand != WoWItemWeaponClass.None &&
+                clazz != EquipMeSettings.Instance.WeaponOffHand)
+            {
+                return false;
+            }
+            // don't equip ranged weapons not of specified type
+            if (slot == InventorySlot.RangedSlot && EquipMeSettings.Instance.WeaponRanged != WoWItemWeaponClass.None &&
+                clazz != EquipMeSettings.Instance.WeaponRanged)
+            {
+                return false;
+            }
+            // otherwise we can equip it no probs
+            return true;
+        }
+
         /// <summary>
         /// If there is an empty slot available which can be filled
         /// </summary>
         /// <param name="type">item type</param>
         /// <returns>yes/no</returns>
-        public static bool HasEmpty(InventoryType type, out InventorySlot emptySlot)
+        public static bool HasEmpty(ItemInfo item, out InventorySlot emptySlot)
         {
             emptySlot = InventorySlot.None;
-            foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(type))
+            foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
+                // if we can't equip a weapon according to settings
+                if (!CanEquipWeapon(slot, item.WeaponClass))
+                {
+                    continue;
+                }
                 var equipped_item = StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot - 1);
                 if (equipped_item == null)
                 {
@@ -610,49 +639,51 @@ namespace EquipMe
         /// <returns>list of potential item replacements</returns>
         public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item, bool isBound)
         {
+            var equipped_items = new Dictionary<WoWItem, ItemSlotInto>();
             // check if we can even equip the item
             if (!StyxWoW.Me.CanEquipItem(item))
             {
-                return new Dictionary<WoWItem, ItemSlotInto>();
+                return equipped_items;
             }
             // dont equip it if it's not the armour type we want
             if (EquipMeSettings.Instance.OnlyEquipArmourType != WoWItemArmorClass.None && EquipMeSettings.Instance.OnlyEquipArmourType != item.ArmorClass)
             {
-                return new Dictionary<WoWItem, ItemSlotInto>();
+                return equipped_items;
             }
             // don't try to equip anything for a blacklisted slot
             if (EquipMeSettings.Instance.BlacklistedSlots.Split(',').Any(slotval =>
                 ToInteger(slotval) == (int)item.InventoryType ||
                 string.Equals(slotval.Trim(), item.InventoryType.ToString(), StringComparison.OrdinalIgnoreCase)))
             {
-                return new Dictionary<WoWItem, ItemSlotInto>();
+                return equipped_items;
             }
             // if it's not an item type that can be equipped
             if (item.InventoryType == InventoryType.None)
             {
-                return new Dictionary<WoWItem, ItemSlotInto>();
+                return equipped_items;
             }
             // dont try to equip anything for a blacklisted boe quality
             if (item.Bond == WoWItemBondType.OnEquip && !isBound)
             {
+                // epic
                 if (EquipMeSettings.Instance.IngoreEpicBOE && item.Quality == WoWItemQuality.Epic)
                 {
-                    return new Dictionary<WoWItem, ItemSlotInto>();
+                    return equipped_items;
                 }
-                // dont try to equip anything for a blacklisted item quality
+                // rare
                 if (EquipMeSettings.Instance.IgnoreRareBOE && item.Quality == WoWItemQuality.Rare)
                 {
-                    return new Dictionary<WoWItem, ItemSlotInto>();
+                    return equipped_items;
                 }
             }
-            var equipped_items = new Dictionary<WoWItem, ItemSlotInto>();
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
-                //Log("Slot in: {0}, slot out: {1}", item.InventoryType, slot);
-                if (slot == InventorySlot.None)
+                // if we can't equip a weapon according to settings
+                if (!CanEquipWeapon(slot, item.WeaponClass))
                 {
                     continue;
                 }
+                //Log("Slot in: {0}, slot out: {1}", item.InventoryType, slot);
                 var equipped_item = StyxWoW.Me.Inventory.Equipped.GetItemBySlot((uint)slot - 1);
                 if (equipped_item == null)
                 {
