@@ -180,7 +180,6 @@ namespace EquipMe
                 Log("Updating blank stats from wowhead");
                 UpdateWowhead();
             }
-
             // enumerate each item
             foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(i.Guid)))
             {

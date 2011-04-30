@@ -99,50 +99,49 @@ namespace EquipMe
                 string.Equals(needlistitem.Trim(), roll_itemname, StringComparison.OrdinalIgnoreCase) ||
                 Regex.IsMatch(roll_itemname, needlistitem, RegexOptions.IgnoreCase)))
             {
-                var rolltype = GetRollType(roll_id, true);
-                Log("Rolling need (if possible - {0}) on item matched in need list: {1}", rolltype, roll_itemname);
-                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
+                var rolltypeneed = GetRollType(roll_id, true);
+                Log("Rolling need (if possible - {0}) on item matched in need list: {1}", rolltypeneed, roll_itemname);
+                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltypeneed + ")");
                 return;
             }
-            // if we can't equip it, greed/de/pass
-            if (!StyxWoW.Me.CanEquipItem(roll_iteminfo))
+            // if we can't equip it, greed/de/pass (taking into account ignore level settings
+            GameError g_error;
+            bool b = StyxWoW.Me.CanEquipItem(roll_iteminfo, out g_error);
+            if (!b && !(EquipMeSettings.Instance.RollIgnoreLevel && g_error == GameError.CantEquipLevelI && StyxWoW.Me.Level + EquipMeSettings.Instance.RollIgnoreLevelDiff <= roll_iteminfo.RequiredLevel))
             {
-                var rolltype = GetRollType(roll_id, false);
-                Log("Rolling {0} on non-equippable item: {1}", rolltype, roll_itemname);
-                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
+                    var rolltypenonequip = GetRollType(roll_id, false);
+                    Log("Rolling {0} on non-equippable item: {1}", rolltypenonequip, roll_itemname);
+                    Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltypenonequip + ")");
             }
-            else // otherwise compare it to equipped items
+            // grab the item stats from wow (this takes into account random properties as it uses a wow func to construct)
+            var roll_itemstats = new ItemStats(roll_itemstring);
+            roll_itemstats.DPS = roll_iteminfo.DPS;
+            // calculates the item score based off given info and stats (noting that this is not an equipped item)
+            var roll_itemscore = CalcScore(roll_iteminfo, roll_itemstats);
+            var need_item = false;
+            // if there's an empty slot
+            var emptySlot = InventorySlot.None;
+            if (HasEmpty(roll_iteminfo, out emptySlot) && roll_itemscore > 0)
             {
-                // grab the item stats from wow (this takes into account random properties as it uses a wow func to construct)
-                var roll_itemstats = new ItemStats(roll_itemstring);
-                roll_itemstats.DPS = roll_iteminfo.DPS;
-                // calculates the item score based off given info and stats (noting that this is not an equipped item)
-                var roll_itemscore = CalcScore(roll_iteminfo, roll_itemstats);
-                var need_item = false;
-                // if there's an empty slot
-                var emptySlot = InventorySlot.None;
-                if (HasEmpty(roll_iteminfo, out emptySlot) && roll_itemscore > 0)
+                Log(" - Found empty slot: {0}", emptySlot);
+                need_item = true;
+            }
+            else
+            {
+                // get a list of equipped items and their scores
+                var equipped_items = GetReplaceableItems(roll_iteminfo, false);
+                foreach (var equipped_item_kvp in equipped_items)
                 {
-                    Log(" - Found empty slot: {0}", emptySlot);
-                    need_item = true;
-                }
-                else
-                {
-                    // get a list of equipped items and their scores
-                    var equipped_items = GetReplaceableItems(roll_iteminfo, false);
-                    foreach (var equipped_item_kvp in equipped_items)
+                    if (roll_itemscore > equipped_item_kvp.Value.score)
                     {
-                        if (roll_itemscore > equipped_item_kvp.Value.score)
-                        {
-                            Log(" - Equipped: {0}, score: {1}", equipped_item_kvp.Key.Name, equipped_item_kvp.Value);
-                            need_item = true;
-                        }
+                        Log(" - Equipped: {0}, score: {1}", equipped_item_kvp.Key.Name, equipped_item_kvp.Value);
+                        need_item = true;
                     }
                 }
-                var rolltype = GetRollType(roll_id, need_item);
-                Log("Rolling {0} on: {1}, score: {2}", rolltype, roll_itemname, roll_itemscore);
-                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
             }
+            var rolltype = GetRollType(roll_id, need_item);
+            Log("Rolling {0} on: {1}, score: {2}", rolltype, roll_itemname, roll_itemscore);
+            Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
         }
 
         #endregion

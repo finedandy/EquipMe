@@ -256,6 +256,20 @@ namespace EquipMe
         [DefaultValue("")]
         public string RollNeedList { get; set; }
 
+        [Setting]
+        [DefaultValue(false)]
+        [Category("Loot Rolling")]
+        [DisplayName("Ignore Level")]
+        [Description("Ignores the level requirement when taking into account if an item is equippable.")]
+        public bool RollIgnoreLevel { get; set; }
+
+        [Setting]
+        [DefaultValue(2)]
+        [Category("Loot Rolling")]
+        [DisplayName("Level Difference")]
+        [Description("Only rolls on items where the required level is less than or equal this number higher than our level.")]
+        public int RollIgnoreLevelDiff { get; set; }
+
         #endregion
 
         #region category: character
