@@ -36,7 +36,7 @@ namespace EquipMe
         /// Constructor, load the settings
         /// </summary>
         public EquipMeSettings()
-            : base(Logging.ApplicationPath + "\\Settings\\") // take that you shitty default constructor
+            : base(Logging.ApplicationPath + Path.PathSeparator) // take that you shitty default constructor
         {
             LoadSettings();
         }
@@ -49,8 +49,6 @@ namespace EquipMe
             _currentSpec = null;
             BlacklistedInventoryItems.Clear();
             NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
-            //
-
             //
             try
             {
@@ -128,26 +126,14 @@ namespace EquipMe
         #region weightsets
 
         /// <summary>
-        /// used to construct lowbie weight set
-        /// </summary>
-        private static Dictionary<string, float> _lowbieStats = new Dictionary<string, float>() 
-        {
-            { Stat.Stamina.ToString(), 1f },
-            { Stat.Intellect.ToString(), 1f },
-            { Stat.Strength.ToString(), 1f },
-            { Stat.Agility.ToString(), 1f },
-            { Stat.Armor.ToString(), 1f },
-        };
-
-        /// <summary>
         /// A blank weight set, name = "blank" and all stats = 0
         /// </summary>
         public static WeightSet WeightSet_Blank = new WeightSet("blank", Enum.GetNames(typeof(Stat)).Where(name => name.ToLower() != "none").ToDictionary(o => (Stat)Enum.Parse(typeof(Stat), o), k => 0f));
 
         /// <summary>
-        /// A lowbie weight set, name = "lowbie" and all stats 0 except as set in _lowbieStats
+        /// A lowbie weight set, name = "lowbie" and all stats 1
         /// </summary>
-        public static WeightSet WeightSet_Lowbie = new WeightSet("lowbie", Enum.GetNames(typeof(Stat)).Where(name => name.ToLower() != "none").ToDictionary(o => (Stat)Enum.Parse(typeof(Stat), o), k => (_lowbieStats.ContainsKey(k) ? _lowbieStats[k] : 0f)));
+        public static WeightSet WeightSet_Lowbie = new WeightSet("lowbie", Enum.GetNames(typeof(Stat)).Where(name => name.ToLower() != "none").ToDictionary(o => (Stat)Enum.Parse(typeof(Stat), o), k => 1f));
 
         /// <summary>
         /// The current weight set, by default set to blank
@@ -307,25 +293,88 @@ namespace EquipMe
         public WoWItemArmorClass OnlyEquipArmourType { get; set; }
 
         [Setting]
-        [DefaultValue(WoWItemWeaponClass.None)]
+        [DefaultValue("")]
         [Category("Character")]
         [DisplayName("Main Hand")]
-        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types for your class).")]
-        public WoWItemWeaponClass WeaponMainHand { get; set; }
+        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types for your class). Available values: \n" + 
+            "None = -1 \n" +
+            "Axe = 0 \n" +
+            "AxeTwoHand = 1 \n" +
+            "Bow = 2 \n" +
+            "Gun = 3 \n" +
+            "Mace = 4 \n" +
+            "MaceTwoHand = 5 \n" +
+            "Polearm = 6 \n" +
+            "Sword = 7 \n" +
+            "SwordTwoHand = 8 \n" +
+            "Staff = 10 \n" +
+            "Exotic = 11 \n" +
+            "ExoticTwoHand = 12 \n" +
+            "Fist = 13 \n" +
+            "Misc = 14 \n" +
+            "Dagger = 15 \n" +
+            "Thrown = 16 \n" +
+            "Spear = 17 \n" +
+            "Crossbow = 18 \n" +
+            "Wand = 19 \n" +
+            "FishingPole = 20")]
+        public string WeaponMainHand { get; set; }
 
         [Setting]
-        [DefaultValue(WoWItemWeaponClass.None)]
+        [DefaultValue("")]
         [Category("Character")]
         [DisplayName("Off Hand")]
-        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types for your class).")]
-        public WoWItemWeaponClass WeaponOffHand { get; set; }
+        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types for your class). Available values: \n" +
+            "None = -1 \n" +
+            "Axe = 0 \n" +
+            "AxeTwoHand = 1 \n" +
+            "Bow = 2 \n" +
+            "Gun = 3 \n" +
+            "Mace = 4 \n" +
+            "MaceTwoHand = 5 \n" +
+            "Polearm = 6 \n" +
+            "Sword = 7 \n" +
+            "SwordTwoHand = 8 \n" +
+            "Staff = 10 \n" +
+            "Exotic = 11 \n" +
+            "ExoticTwoHand = 12 \n" +
+            "Fist = 13 \n" +
+            "Misc = 14 \n" +
+            "Dagger = 15 \n" +
+            "Thrown = 16 \n" +
+            "Spear = 17 \n" +
+            "Crossbow = 18 \n" +
+            "Wand = 19 \n" +
+            "FishingPole = 20")]
+        public string WeaponOffHand { get; set; }
 
         [Setting]
-        [DefaultValue(WoWItemWeaponClass.None)]
+        [DefaultValue("")]
         [Category("Character")]
         [DisplayName("Ranged")]
-        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types for your class).")]
-        public WoWItemWeaponClass WeaponRanged { get; set; }
+        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types for your class). Available values: \n" +
+            "None = -1 \n" +
+            "Axe = 0 \n" +
+            "AxeTwoHand = 1 \n" +
+            "Bow = 2 \n" +
+            "Gun = 3 \n" +
+            "Mace = 4 \n" +
+            "MaceTwoHand = 5 \n" +
+            "Polearm = 6 \n" +
+            "Sword = 7 \n" +
+            "SwordTwoHand = 8 \n" +
+            "Staff = 10 \n" +
+            "Exotic = 11 \n" +
+            "ExoticTwoHand = 12 \n" +
+            "Fist = 13 \n" +
+            "Misc = 14 \n" +
+            "Dagger = 15 \n" +
+            "Thrown = 16 \n" +
+            "Spear = 17 \n" +
+            "Crossbow = 18 \n" +
+            "Wand = 19 \n" +
+            "FishingPole = 20")]
+        public string WeaponRanged { get; set; }
 
         #endregion
 

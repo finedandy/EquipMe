@@ -61,11 +61,6 @@ namespace EquipMe
 
         private void DoItemRoll(int roll_id)
         {
-            // don't roll on loot if the setting is off
-            if (!EquipMeSettings.Instance.RollOnLoot)
-            {
-                return;
-            }
             // pull the itemstring from the itemlink for the roll
             var roll_itemstring = Lua.GetReturnVal<string>("return string.match(GetLootRollItemLink(" + roll_id + "), 'item[%-?%d:]+')", 0).Trim();
             // if the itemstring is empty for whatever reason, don't do anything
@@ -104,21 +99,23 @@ namespace EquipMe
                 string.Equals(needlistitem.Trim(), roll_itemname, StringComparison.OrdinalIgnoreCase) ||
                 Regex.IsMatch(roll_itemname, needlistitem, RegexOptions.IgnoreCase)))
             {
-                Log("Rolling need (if possible) on item matched in need list: {0}", roll_itemname);
-                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)GetRollType(roll_id, true) + ")");
+                var rolltype = GetRollType(roll_id, true);
+                Log("Rolling need (if possible - {0}) on item matched in need list: {1}", rolltype, roll_itemname);
+                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
                 return;
             }
-            // if it's not on the need list and doesn't have an inv type (ie, not equippable), greed/de/pass
-            if (roll_iteminfo.InventoryType == InventoryType.None)
+            // if we can't equip it, greed/de/pass
+            if (!StyxWoW.Me.CanEquipItem(roll_iteminfo))
             {
                 var rolltype = GetRollType(roll_id, false);
-                Log("Rolling {0} on non-equipped item: {1}", rolltype, roll_itemname);
+                Log("Rolling {0} on non-equippable item: {1}", rolltype, roll_itemname);
                 Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltype + ")");
             }
             else // otherwise compare it to equipped items
             {
                 // grab the item stats from wow (this takes into account random properties as it uses a wow func to construct)
                 var roll_itemstats = new ItemStats(roll_itemstring);
+                roll_itemstats.DPS = roll_iteminfo.DPS;
                 // calculates the item score based off given info and stats (noting that this is not an equipped item)
                 var roll_itemscore = CalcScore(roll_iteminfo, roll_itemstats);
                 var need_item = false;
@@ -126,7 +123,7 @@ namespace EquipMe
                 var emptySlot = InventorySlot.None;
                 if (HasEmpty(roll_iteminfo, out emptySlot) && roll_itemscore > 0)
                 {
-                    Log("Found empty slot: {0}", emptySlot);
+                    Log(" - Found empty slot: {0}", emptySlot);
                     need_item = true;
                 }
                 else
@@ -188,7 +185,6 @@ namespace EquipMe
         {
             try
             {
-                Log("Downloading weights from wowhead...");
                 string result = new WebClient().DownloadString("http://www.wowhead.com/data=weight-presets");
                 LogDebug("Weights downloaded ({0})", result.Length);
                 var currentclass = WoWClass.None;
@@ -309,6 +305,7 @@ namespace EquipMe
 
                         Log("Found wowhead weight set: {0}", set.Name);
                         EquipMeSettings.Instance.WeightSet_Current = set;
+                        EquipMeSettings.Instance.SaveSettings();
                         break;
                     }
                 }
@@ -577,25 +574,45 @@ namespace EquipMe
 
         #region get replaceable items
 
+        /// <summary>
+        /// Checks if a weapon class is in a string, by id or name
+        /// </summary>
+        /// <param name="clazz">weapon class</param>
+        /// <param name="str">string</param>
+        /// <returns>yes/no</returns>
+        public static bool IsWeaponClassInString(WoWItemWeaponClass clazz, string str)
+        {
+            if (str.Split(',').Where(slotstr => !string.IsNullOrEmpty(slotstr.Trim())).Any(slotstr => 
+                (WoWItemWeaponClass)ToInteger(slotstr) == clazz ||
+                string.Equals(clazz.ToString(), slotstr, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks against settings if we can equip a weapon by it's class
+        /// </summary>
+        /// <param name="slot">item slot</param>
+        /// <param name="clazz">weapon class</param>
+        /// <returns>true if we can equip it, false if we can't</returns>
         public static bool CanEquipWeapon(InventorySlot slot, WoWItemWeaponClass clazz)
         {
-            // don't equip mainhand weapons not of specified type
-            if (slot == InventorySlot.MainHandSlot && EquipMeSettings.Instance.WeaponMainHand != WoWItemWeaponClass.None &&
-                clazz != EquipMeSettings.Instance.WeaponMainHand)
+            // mh
+            if (slot == InventorySlot.MainHandSlot && EquipMeSettings.Instance.WeaponMainHand.Trim().Length > 0)
             {
-                return false;
+                return IsWeaponClassInString(clazz, EquipMeSettings.Instance.WeaponMainHand.Trim());
             }
-            // don't equip offhand weapons not of specified type
-            if (slot == InventorySlot.SecondaryHandSlot && EquipMeSettings.Instance.WeaponOffHand != WoWItemWeaponClass.None &&
-                clazz != EquipMeSettings.Instance.WeaponOffHand)
+            // oh
+            if (slot == InventorySlot.SecondaryHandSlot && EquipMeSettings.Instance.WeaponOffHand.Trim().Length > 0)
             {
-                return false;
+                return IsWeaponClassInString(clazz, EquipMeSettings.Instance.WeaponOffHand.Trim());
             }
-            // don't equip ranged weapons not of specified type
-            if (slot == InventorySlot.RangedSlot && EquipMeSettings.Instance.WeaponRanged != WoWItemWeaponClass.None &&
-                clazz != EquipMeSettings.Instance.WeaponRanged)
+            // ranged
+            if (slot == InventorySlot.RangedSlot && EquipMeSettings.Instance.WeaponRanged.Trim().Length > 0)
             {
-                return false;
+                return IsWeaponClassInString(clazz, EquipMeSettings.Instance.WeaponRanged.Trim());
             }
             // otherwise we can equip it no probs
             return true;
@@ -611,6 +628,10 @@ namespace EquipMe
             emptySlot = InventorySlot.None;
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
+                if ((int)slot - 1 < 0)
+                {
+                    continue;
+                }
                 // if we can't equip a weapon according to settings
                 if (!CanEquipWeapon(slot, item.WeaponClass))
                 {
@@ -637,14 +658,9 @@ namespace EquipMe
         /// </summary>
         /// <param name="item">item to check against</param>
         /// <returns>list of potential item replacements</returns>
-        public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item, bool isBound)
+        public static Dictionary<WoWItem, ItemSlotInto> GetReplaceableItems(ItemInfo item, bool isSoulBound)
         {
             var equipped_items = new Dictionary<WoWItem, ItemSlotInto>();
-            // check if we can even equip the item
-            if (!StyxWoW.Me.CanEquipItem(item))
-            {
-                return equipped_items;
-            }
             // dont equip it if it's not the armour type we want
             if (EquipMeSettings.Instance.OnlyEquipArmourType != WoWItemArmorClass.None && EquipMeSettings.Instance.OnlyEquipArmourType != item.ArmorClass)
             {
@@ -663,7 +679,7 @@ namespace EquipMe
                 return equipped_items;
             }
             // dont try to equip anything for a blacklisted boe quality
-            if (item.Bond == WoWItemBondType.OnEquip && !isBound)
+            if (item.Bond == WoWItemBondType.OnEquip && !isSoulBound)
             {
                 // epic
                 if (EquipMeSettings.Instance.IngoreEpicBOE && item.Quality == WoWItemQuality.Epic)
@@ -678,6 +694,10 @@ namespace EquipMe
             }
             foreach (var slot in InventoryManager.GetInventorySlotsByEquipSlot(item.InventoryType))
             {
+                if ((int)slot - 1 < 0)
+                {
+                    continue;
+                }
                 // if we can't equip a weapon according to settings
                 if (!CanEquipWeapon(slot, item.WeaponClass))
                 {
@@ -695,7 +715,7 @@ namespace EquipMe
                     continue;
                 }
                 var isl = new ItemSlotInto();
-                isl.score = CalcScore(equipped_item.ItemInfo, null);
+                isl.score = CalcScore(equipped_item);
                 isl.slot = slot;
                 //Log("Equipped item: {0} - {1}", equipped_item.Name, isl.score);
                 equipped_items.Add(equipped_item, isl);
@@ -707,29 +727,25 @@ namespace EquipMe
 
         #region calc item score
 
-        /// <summary>
-        /// Calculates an item's score based on the current weightset
-        /// </summary>
-        /// <param name="item">ItemInfo checked</param>
-        /// <param name="stats">ItemStats checked (can be null)</param>
-        /// <returns>itemscore is returned (# of slots are returned as score for bags)</returns>
+        public static float CalcScore(WoWItem item)
+        {
+            return item.ItemInfo.BagSlots > 0 ? 
+                item.ItemInfo.BagSlots : 
+                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
+        }
+
+        public static float CalcScore(ItemInfo item)
+        {
+            return item.BagSlots > 0 ?
+                item.BagSlots :
+                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
+        }
+
         public static float CalcScore(ItemInfo item, ItemStats stats)
         {
-            if (item.BagSlots > 0)
-            {
-                return item.BagSlots;
-            }
-            else
-            {
-                if (stats == null)
-                {
-                    return EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
-                }
-                else
-                {
-                    return EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, stats);
-                }
-            }
+            return item.BagSlots > 0 ?
+                item.BagSlots :
+                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, stats);
         }
 
         #endregion
