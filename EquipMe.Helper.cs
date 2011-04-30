@@ -305,10 +305,10 @@ namespace EquipMe
 
                         Log("Found wowhead weight set: {0}", set.Name);
                         EquipMeSettings.Instance.WeightSet_Current = set;
-                        EquipMeSettings.Instance.SaveSettings();
                         break;
                     }
                 }
+                EquipMeSettings.Instance.SaveSettings();
                 foreach (var kvp in EquipMeSettings.Instance.WeightSet_Current.Weights.Where(they => they.Value > 0))
                 {
                     Log("- {0} = {1}", kvp.Key, kvp.Value);
