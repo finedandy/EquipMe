@@ -109,9 +109,9 @@ namespace EquipMe
             bool b = StyxWoW.Me.CanEquipItem(roll_iteminfo, out g_error);
             if (!b && !(EquipMeSettings.Instance.RollIgnoreLevel && g_error == GameError.CantEquipLevelI && StyxWoW.Me.Level + EquipMeSettings.Instance.RollIgnoreLevelDiff <= roll_iteminfo.RequiredLevel))
             {
-                    var rolltypenonequip = GetRollType(roll_id, false);
-                    Log("Rolling {0} on non-equippable item: {1}", rolltypenonequip, roll_itemname);
-                    Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltypenonequip + ")");
+                var rolltypenonequip = GetRollType(roll_id, false);
+                Log("Rolling {0} on non-equippable item: {1}", rolltypenonequip, roll_itemname);
+                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)rolltypenonequip + ")");
             }
             // grab the item stats from wow (this takes into account random properties as it uses a wow func to construct)
             var roll_itemstats = new ItemStats(roll_itemstring);
@@ -579,7 +579,7 @@ namespace EquipMe
         /// <returns>yes/no</returns>
         public static bool IsWeaponClassInString(WoWItemWeaponClass clazz, string str)
         {
-            if (str.Split(',').Where(slotstr => !string.IsNullOrEmpty(slotstr.Trim())).Any(slotstr => 
+            if (str.Split(',').Where(slotstr => !string.IsNullOrEmpty(slotstr.Trim())).Any(slotstr =>
                 (WoWItemWeaponClass)ToInteger(slotstr) == clazz ||
                 string.Equals(clazz.ToString(), slotstr, StringComparison.OrdinalIgnoreCase)))
             {
@@ -726,8 +726,8 @@ namespace EquipMe
 
         public static float CalcScore(WoWItem item)
         {
-            return item.ItemInfo.BagSlots > 0 ? 
-                item.ItemInfo.BagSlots : 
+            return item.ItemInfo.BagSlots > 0 ?
+                item.ItemInfo.BagSlots :
                 EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
         }
 
@@ -743,6 +743,15 @@ namespace EquipMe
             return item.BagSlots > 0 ?
                 item.BagSlots :
                 EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, stats);
+        }
+
+        #endregion
+
+        #region equip
+
+        public static void DoEquip(int bagindex, int bagslot, InventorySlot slot)
+        {
+            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2}); ClearCursor();", bagindex, bagslot, (int)slot);
         }
 
         #endregion

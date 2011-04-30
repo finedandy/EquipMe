@@ -49,7 +49,7 @@ namespace EquipMe
 
         public override string Author
         {
-            get 
+            get
             {
                 return "eXemplar";
             }
@@ -57,7 +57,7 @@ namespace EquipMe
 
         public override string Name
         {
-            get 
+            get
             {
                 return "EquipMe";
             }
@@ -65,7 +65,7 @@ namespace EquipMe
 
         public override Version Version
         {
-            get 
+            get
             {
                 return new Version(2, 0);
             }
@@ -190,7 +190,7 @@ namespace EquipMe
                     if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
                     {
                         Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, (InventorySlot)emptySlot);
-                        Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)emptySlot);
+                        DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, emptySlot);
                         EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                         return;
                     }
@@ -207,8 +207,17 @@ namespace EquipMe
                         //Log("Checking item {0} - {1}", item_inv, item_score);
                         if (worst_item.Key != null && item_score > worst_item.Value.score)
                         {
+                            // check the bag doesn't exist inside the bag it's trying to replace
+                            if (worst_item.Key.ItemInfo.BagSlots > 0 && worst_item.Key.Guid == item_inv.ContainerGuid)
+                            {
+                                // don't try equip a bag inside another bag, move bag to backpack first
+                                Log("Moving bag: {0} into main backpack before equip.", item_inv.Name);
+                                Lua.DoString("local slot = 1; for checkslot=1,16 do if GetContainerItemID(0, checkslot) == nil then slot = checkslot; break; end; end; ClearCursor(); PickupContainerItem({0}, {1}); PickupContainerItem(0, slot); ClearCursor();", item_inv.BagIndex + 1, item_inv.BagSlot + 1);
+                                EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                                return;
+                            }
                             Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
-                            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)worst_item.Value.slot);
+                            DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, worst_item.Value.slot);
                             EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                             return;
                         }

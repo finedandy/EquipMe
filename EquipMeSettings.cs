@@ -310,7 +310,7 @@ namespace EquipMe
         [DefaultValue("")]
         [Category("Character")]
         [DisplayName("Main Hand Type")]
-        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types available for your class). Available values: \n" + 
+        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types available for your class). Available values: \n" +
             "None = -1 \n" +
             "Axe = 0 \n" +
             "AxeTwoHand = 1 \n" +
