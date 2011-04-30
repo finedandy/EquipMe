@@ -191,7 +191,7 @@ namespace EquipMe
                 var emptySlot = InventorySlot.None;
                 if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
                 {
-                    Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, emptySlot);
+                    Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, (InventorySlot)emptySlot);
                     Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)emptySlot);
                     EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                     return;
@@ -202,6 +202,7 @@ namespace EquipMe
                     var equipped_items = GetReplaceableItems(item_inv.ItemInfo, item_inv.IsSoulbound);
                     if (equipped_items.Count <= 0)
                     {
+                        //Log("No replaceable items for: {0}", item_inv.Name);
                         continue;
                     }
                     var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();

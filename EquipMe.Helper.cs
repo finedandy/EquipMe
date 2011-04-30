@@ -188,7 +188,7 @@ namespace EquipMe
         {
             try
             {
-                LogDebug("Downloading weights from wowhead...");
+                Log("Downloading weights from wowhead...");
                 string result = new WebClient().DownloadString("http://www.wowhead.com/data=weight-presets");
                 LogDebug("Weights downloaded ({0})", result.Length);
                 var currentclass = WoWClass.None;

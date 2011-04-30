@@ -303,28 +303,28 @@ namespace EquipMe
         [DefaultValue(WoWItemArmorClass.None)]
         [Category("Character")]
         [DisplayName("Only Equip Armour")]
-        [Description("Will only try to equip armour of this type (None = equips all item types).")]
+        [Description("Will only try to equip armour of this type (None = equips all item types for your class).")]
         public WoWItemArmorClass OnlyEquipArmourType { get; set; }
 
         [Setting]
         [DefaultValue(WoWItemWeaponClass.None)]
         [Category("Character")]
         [DisplayName("Main Hand")]
-        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types).")]
+        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types for your class).")]
         public WoWItemWeaponClass WeaponMainHand { get; set; }
 
         [Setting]
         [DefaultValue(WoWItemWeaponClass.None)]
         [Category("Character")]
         [DisplayName("Off Hand")]
-        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types).")]
+        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types for your class).")]
         public WoWItemWeaponClass WeaponOffHand { get; set; }
 
         [Setting]
         [DefaultValue(WoWItemWeaponClass.None)]
         [Category("Character")]
         [DisplayName("Ranged")]
-        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types).")]
+        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types for your class).")]
         public WoWItemWeaponClass WeaponRanged { get; set; }
 
         #endregion

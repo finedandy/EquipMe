@@ -53,7 +53,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(284, 262);
+            this.tabControl1.Size = new System.Drawing.Size(284, 308);
             this.tabControl1.TabIndex = 0;
             // 
             // tabPage1
@@ -62,7 +62,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 22);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(276, 236);
+            this.tabPage1.Size = new System.Drawing.Size(276, 282);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "Settings";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -72,7 +72,7 @@
             this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertyGrid1.Location = new System.Drawing.Point(3, 3);
             this.propertyGrid1.Name = "propertyGrid1";
-            this.propertyGrid1.Size = new System.Drawing.Size(270, 230);
+            this.propertyGrid1.Size = new System.Drawing.Size(270, 276);
             this.propertyGrid1.TabIndex = 1;
             // 
             // tabPage2
@@ -81,7 +81,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(276, 236);
+            this.tabPage2.Size = new System.Drawing.Size(276, 282);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Weights";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -91,7 +91,7 @@
             this.propertyGrid2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertyGrid2.Location = new System.Drawing.Point(3, 3);
             this.propertyGrid2.Name = "propertyGrid2";
-            this.propertyGrid2.Size = new System.Drawing.Size(270, 230);
+            this.propertyGrid2.Size = new System.Drawing.Size(270, 276);
             this.propertyGrid2.TabIndex = 2;
             // 
             // tabPage3
@@ -102,7 +102,7 @@
             this.tabPage3.Controls.Add(this.button2);
             this.tabPage3.Location = new System.Drawing.Point(4, 22);
             this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Size = new System.Drawing.Size(276, 236);
+            this.tabPage3.Size = new System.Drawing.Size(276, 282);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Misc";
             this.tabPage3.UseVisualStyleBackColor = true;
@@ -157,7 +157,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 262);
+            this.ClientSize = new System.Drawing.Size(284, 308);
             this.Controls.Add(this.tabControl1);
             this.Name = "EquipMeGui";
             this.Text = "EquipMe Settings";
