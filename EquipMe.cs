@@ -208,14 +208,14 @@ namespace EquipMe
                         //Log("Checking item {0} - {1}", item_inv, item_score);
                         if (worst_item.Key != null && item_score > worst_item.Value.score)
                         {
-                            Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, (int)worst_item.Value.slot);
+                            Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
                             Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2});", item_inv.BagIndex + 1, item_inv.BagSlot + 1, (int)worst_item.Value.slot);
                             EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                             return;
                         }
                     }
                 }
-                // blacklist if we didn't equip it
+                // blacklist if we didn't/can't equip it
                 EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
             }
         }

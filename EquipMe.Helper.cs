@@ -481,8 +481,6 @@ namespace EquipMe
 
         #region logging
 
-        private static string _appName = Assembly.GetExecutingAssembly().GetName().Name.Substring(0, Assembly.GetExecutingAssembly().GetName().Name.IndexOf('_'));
-
         /// <summary>
         /// Writes a (formatted) string to the debug log
         /// </summary>
@@ -490,7 +488,7 @@ namespace EquipMe
         /// <param name="args">params for any format (optional)</param>
         public static void LogDebug(string s, params object[] args)
         {
-            Logging.WriteDebug(Color.DarkSlateGray, "[" + _appName + "] " + s, args);
+            Logging.WriteDebug(Color.DarkSlateGray, "[EquipMe] " + s, args);
         }
 
         /// <summary>
@@ -500,7 +498,7 @@ namespace EquipMe
         /// <param name="args">params for any format (optional)</param>
         public static void Log(string s, params object[] args)
         {
-            Logging.Write(Color.DarkSlateGray, "[" + _appName + "] " + s, args);
+            Logging.Write(Color.DarkSlateGray, "[EquipMe] " + s, args);
         }
 
         #endregion

@@ -182,29 +182,29 @@ namespace EquipMe
         [Setting]
         [DefaultValue(true)]
         [Category("General")]
-        [DisplayName("Ignore Epic BOE")]
-        [Description("Doesn't try to equip epic (purple) bind on equip items.")]
+        [DisplayName("Ignore BOE Epic")]
+        [Description("Don't try to equip epic (purple) bind on equip items that aren't already soulbound.")]
         public bool IngoreEpicBOE { get; set; }
 
         [Setting]
         [DefaultValue(false)]
         [Category("General")]
-        [DisplayName("Ignore Rare BOE")]
-        [Description("Doesn't try to equip rare (blue) bind on equip items.")]
+        [DisplayName("Ignore BOE Rare")]
+        [Description("Don't try to equip rare (blue) bind on equip items that aren't already soulbound.")]
         public bool IgnoreRareBOE { get; set; }
 
         [Setting]
         [DefaultValue(true)]
         [Category("General")]
         [DisplayName("Ignore Heirlooms")]
-        [Description("Doesn't try to equip items over already equipped heirlooms.")]
+        [Description("Don't try to equip items over already equipped heirlooms.")]
         public bool IgnoreHeirlooms { get; set; }
 
         [Setting]
         [DefaultValue(30)]
         [Category("General")]
         [DisplayName("Pulse Frequency")]
-        [Description("How many seconds between each pulse.")]
+        [Description("How many seconds between each pulse, just leave this at 30 if you don't know what it is.")]
         public int PulseFrequency { get; set; }
 
         [Category("General")]
@@ -227,7 +227,7 @@ namespace EquipMe
         [Setting]
         [Category("General")]
         [DisplayName("Use PVP")]
-        [Description("Use different settings for PVP weights.")]
+        [Description("Use different settings for PVP. This will switch to a PVP weightset and settings file when inside a battleground.")]
         [DefaultValue(false)]
         public bool UsePVP { get; set; }
 
@@ -252,7 +252,7 @@ namespace EquipMe
         [Setting]
         [Category("Loot Rolling")]
         [DisplayName("Need List")]
-        [Description("A comma seperated list of item names (case insensitive) or ids to roll need on.")]
+        [Description("A comma seperated list of item names (case insensitive), regular expressions or ids to roll need on.")]
         [DefaultValue("")]
         public string RollNeedList { get; set; }
 
@@ -289,14 +289,14 @@ namespace EquipMe
         [DefaultValue(WoWItemArmorClass.None)]
         [Category("Character")]
         [DisplayName("Only Equip Armour")]
-        [Description("Will only try to equip armour of this type (None = equips all item types for your class).")]
+        [Description("Will only try to equip armour of this type (None = equips all item types available for your class).")]
         public WoWItemArmorClass OnlyEquipArmourType { get; set; }
 
         [Setting]
         [DefaultValue("")]
         [Category("Character")]
-        [DisplayName("Main Hand")]
-        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types for your class). Available values: \n" + 
+        [DisplayName("Main Hand Type")]
+        [Description("Will only try to equip weapons of this type into the mainhand slot (none = equips all weapon types available for your class). Available values: \n" + 
             "None = -1 \n" +
             "Axe = 0 \n" +
             "AxeTwoHand = 1 \n" +
@@ -323,8 +323,8 @@ namespace EquipMe
         [Setting]
         [DefaultValue("")]
         [Category("Character")]
-        [DisplayName("Off Hand")]
-        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types for your class). Available values: \n" +
+        [DisplayName("Off Hand Type")]
+        [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types available for your class). Available values: \n" +
             "None = -1 \n" +
             "Axe = 0 \n" +
             "AxeTwoHand = 1 \n" +
@@ -351,8 +351,8 @@ namespace EquipMe
         [Setting]
         [DefaultValue("")]
         [Category("Character")]
-        [DisplayName("Ranged")]
-        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types for your class). Available values: \n" +
+        [DisplayName("Ranged Type")]
+        [Description("Will only try to equip weapons of this type into the ranged slot (none = equips all weapon types available for your class). Available values: \n" +
             "None = -1 \n" +
             "Axe = 0 \n" +
             "AxeTwoHand = 1 \n" +
