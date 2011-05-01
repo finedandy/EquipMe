@@ -257,7 +257,7 @@ namespace EquipMe
                         }
                         var bag_gem =
                             (from item in StyxWoW.Me.BagItems
-                             where item.ItemInfo.ItemClass == WoWItemClass.Gem
+                             where item.ItemInfo.ItemClass == WoWItemClass.Gem && !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(item.Guid)
                              where StyxWoW.Me.CanEquipItem(item)
                              let score = CalcScore(item)
                              where score > 0 && GemFitsIn(item.ItemInfo.GemClass, equipped_item.GetSocketColor(gemslot))
@@ -267,6 +267,7 @@ namespace EquipMe
                         {
                             continue;
                         }
+                        EquipMeSettings.Instance.BlacklistedInventoryItems.Add(bag_gem.item.Guid);
                         Log("Equipping gem {0} (score: {1}) into item: {2}, slot id: {3}, colour: {4}", bag_gem.item.Name, bag_gem.score, equipped_item.Name, gemslot + 1, equipped_item.ItemInfo.SocketColor[gemslot]);
                         Lua.DoString("ClearCursor(); SocketInventoryItem({0}); PickupContainerItem({1}, {2}); ClickSocketButton({3}); AcceptSockets(); ClearCursor(); CloseSocketInfo();", (int)slot, bag_gem.item.BagIndex + 1, bag_gem.item.BagSlot + 1, gemslot + 1);
                         EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
