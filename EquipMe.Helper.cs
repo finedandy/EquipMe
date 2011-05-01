@@ -4,13 +4,13 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Styx;
 using Styx.Combat.CombatRoutine;
 using Styx.Helpers;
 using Styx.Logic.Inventory;
+using Styx.Patchables;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
@@ -64,9 +64,9 @@ namespace EquipMe
             // pull the itemstring from the itemlink for the roll
             var roll_itemstring = Lua.GetReturnVal<string>("return string.match(GetLootRollItemLink(" + roll_id + "), 'item[%-?%d:]+')", 0).Trim();
             // if the itemstring is empty for whatever reason, don't do anything
-            // TODO: should this attempt to roll pass?
             if (string.IsNullOrEmpty(roll_itemstring))
             {
+                Lua.DoString("RollOnLoot(" + roll_id + "," + (int)LootRollType.Pass + ")");
                 return;
             }
             // pulls the item id from the itemstring
@@ -570,7 +570,7 @@ namespace EquipMe
 
         #endregion
 
-        #region get replaceable items
+        #region item replacements
 
         /// <summary>
         /// Checks if a weapon class is in a string, by id or name
@@ -725,34 +725,145 @@ namespace EquipMe
 
         #region calc item score
 
+        /// <summary>
+        /// just a wrapper for the real calcscore
+        /// </summary>
+        /// <param name="item">wowitem to calc score of</param>
+        /// <returns></returns>
         public static float CalcScore(WoWItem item)
         {
-            return item.ItemInfo.BagSlots > 0 ?
-                item.ItemInfo.BagSlots :
-                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
+            return CalcScore(item.ItemInfo, item.GetItemStats());
         }
 
-        public static float CalcScore(ItemInfo item)
-        {
-            return item.BagSlots > 0 ?
-                item.BagSlots :
-                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item);
-        }
-
+        /// <summary>
+        /// calculates an item score based on info and stats
+        /// </summary>
+        /// <param name="item">info</param>
+        /// <param name="stats">stats</param>
+        /// <returns>float score</returns>
         public static float CalcScore(ItemInfo item, ItemStats stats)
         {
-            return item.BagSlots > 0 ?
-                item.BagSlots :
-                EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, stats);
+            // if it's not a gem or it's a simple gem, just use teh weightset or slots
+            if (item.ItemClass != WoWItemClass.Gem || item.GemClass == WoWItemGemClass.Simple)
+            {
+                return item.BagSlots > 0 ? item.BagSlots : EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, stats);
+            }
+            // this is a dirty fucking dbc hack
+            // look up the gemproperties entry
+            var gementry = StyxWoW.Db[ClientDb.GemProperties].GetRow((uint)item.InternalInfo.GemProperties);
+            if (gementry == null)
+            {
+                return 0;
+            }
+            // get the spell index from the gemproperties dbc
+            var spellindex = gementry.GetField<uint>(1);
+            // look up the spellitemenchantment by the index
+            var spellentry = StyxWoW.Db[ClientDb.SpellItemEnchantment].GetRow(spellindex);
+            if (spellentry == null)
+            {
+                return 0;
+            }
+            var newstats = stats;
+            // for each of the 3 stats (minstats used, not maxstats)
+            for (uint statnum = 5; statnum <= 7; statnum++)
+            {
+                try
+                {
+                    // grab the stat amount
+                    var amount = spellentry.GetField<int>(statnum);
+                    if (amount <= 0)
+                    {
+                        continue;
+                    }
+                    // grab the stat type and convert it to something that can be looked up in the stats dic below
+                    var stat = (WoWItemStatType)spellentry.GetField<int>(11);
+                    var stattype = (StatTypes)Enum.Parse(typeof(StatTypes), stat.ToString());
+                    if (!newstats.Stats.ContainsKey(stattype))
+                    {
+                        // add it if it doesn't already exist
+                        newstats.Stats.Add(stattype, amount);
+                    }
+                }
+                catch (Exception) { }
+            }
+            return EquipMeSettings.Instance.WeightSet_Current.EvaluateItem(item, newstats);
         }
 
         #endregion
 
         #region equip
 
+        /// <summary>
+        /// equips an item given a 0 based index and slot, and string
+        /// </summary>
+        /// <param name="bagindex">0 based index</param>
+        /// <param name="bagslot">0 based slot</param>
+        /// <param name="slot">inv slot</param>
         public static void DoEquip(int bagindex, int bagslot, InventorySlot slot)
         {
-            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2}); ClearCursor();", bagindex, bagslot, (int)slot);
+            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2}); ClearCursor();", bagindex + 1, bagslot + 1, (int)slot);
+        }
+
+        #endregion
+
+        #region gems
+
+        /// <summary>
+        /// Checks if an item has a gem in a given slot (0 based slot index)
+        /// </summary>
+        /// <param name="item">item to check</param>
+        /// <param name="slot">0 based index</param>
+        /// <returns>true = has a gem in that slot</returns>
+        public static bool ItemHasGem(WoWItem item, int slot)
+        {
+            return item.GetEnchantment((uint)slot + 2).Id > 0;
+        }
+
+        /// <summary>
+        /// Checks if a gem fits into a given socket, taking into account settings for socket bonuses
+        /// </summary>
+        /// <param name="item">item class</param>
+        /// <param name="socket">socket to check</param>
+        /// <returns>yes = gem can fit</returns>
+        public static bool GemFitsIn(WoWItemGemClass item, WoWSocketColor socket)
+        {
+            // if the gem is simple (ie, uncut) or not a gem, can't fit in any socket
+            if (item == WoWItemGemClass.Simple || item == WoWItemGemClass.None) 
+            {
+                return false;
+            }
+            // if the gem is a meta gem, can only fit in a meta slot
+            if (item == WoWItemGemClass.Meta)
+            {
+                return socket == WoWSocketColor.Meta;
+            }
+            // if the gem is a prismatic, can fit in anything bar meta
+            if (item == WoWItemGemClass.Prismatic)
+            {
+                return socket != WoWSocketColor.Meta;
+            }
+            // if we're gemming for the bonus, check the socket matches or it's two types match
+            if (EquipMeSettings.Instance.GemBonus)
+            {
+                if (item == WoWItemGemClass.Orange)
+                {
+                    return socket == WoWSocketColor.Red || socket == WoWSocketColor.Yellow;
+                }
+                else if (item == WoWItemGemClass.Green)
+                {
+                    return socket == WoWSocketColor.Yellow || socket == WoWSocketColor.Blue;
+                }
+                else if (item == WoWItemGemClass.Purple)
+                {
+                    return socket == WoWSocketColor.Blue || socket == WoWSocketColor.Red;
+                }
+                else
+                {
+                    return string.Equals(item.ToString(), socket.ToString(), StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            // otherwise we can equip any coloured gem into any coloured socket
+            return true;
         }
 
         #endregion

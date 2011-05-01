@@ -112,6 +112,8 @@ namespace EquipMe
 
         #region settings
 
+        #region misc
+
         /// <summary>
         /// A list of items that have been checked and deemed "not equippable"
         /// Cleared when you level up or change spec
@@ -122,6 +124,8 @@ namespace EquipMe
         /// Determines a point of time in the future when the next Pulse() method should run
         /// </summary>
         public DateTime NextPulse = DateTime.Now;
+
+        #endregion
 
         #region weightsets
 
@@ -389,6 +393,22 @@ namespace EquipMe
             "Wand = 19 \n" +
             "FishingPole = 20")]
         public string WeaponRanged { get; set; }
+
+        #endregion
+
+        #region category: gems
+
+        [Category("Gems")]
+        [DefaultValue(false)]
+        [DisplayName("Gem Equipped")]
+        [Description("Whether or not gems should attempted to be placed into equipped items.")]
+        public bool GemEquipped { get; set; }
+
+        [Category("Gems")]
+        [DefaultValue(true)]
+        [DisplayName("Gem For Bonus")]
+        [Description("Whether or not to gem correct socket colours for bonus.")]
+        public bool GemBonus { get; set; }
 
         #endregion
 

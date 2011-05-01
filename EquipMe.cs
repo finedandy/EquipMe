@@ -201,7 +201,7 @@ namespace EquipMe
                     if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
                     {
                         Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, (InventorySlot)emptySlot);
-                        DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, emptySlot);
+                        DoEquip(item_inv.BagIndex, item_inv.BagSlot, emptySlot);
                         EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                         return;
                     }
@@ -225,7 +225,7 @@ namespace EquipMe
                                     return;
                                 }
                                 Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
-                                DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, worst_item.Value.slot);
+                                DoEquip(item_inv.BagIndex, item_inv.BagSlot, worst_item.Value.slot);
                                 EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                                 return;
                             }
@@ -234,6 +234,45 @@ namespace EquipMe
                 }
                 // blacklist if we didn't/can't equip it
                 EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
+            }
+
+            if (EquipMeSettings.Instance.GemEquipped)
+            {
+                foreach (var slot in Enum.GetValues(typeof(InventorySlot)).OfType<InventorySlot>())
+                {
+                    if (slot == InventorySlot.None || slot == InventorySlot.AmmoSlot || slot == InventorySlot.End)
+                    {
+                        continue;
+                    }
+                    var equipped_item = StyxWoW.Me.Inventory.GetItemBySlot((uint)slot - 1);
+                    if (equipped_item == null)
+                    {
+                        continue;
+                    }
+                    for (int gemslot = 0; gemslot < 3; gemslot++)
+                    {
+                        if (equipped_item.GetSocketColor(gemslot) == WoWSocketColor.None || ItemHasGem(equipped_item, gemslot))
+                        {
+                            continue;
+                        }
+                        var bag_gem =
+                            (from item in StyxWoW.Me.BagItems
+                             where item.ItemInfo.ItemClass == WoWItemClass.Gem
+                             where StyxWoW.Me.CanEquipItem(item)
+                             let score = CalcScore(item)
+                             where score > 0 && GemFitsIn(item.ItemInfo.GemClass, equipped_item.GetSocketColor(gemslot))
+                             orderby score descending
+                             select new { item, score }).FirstOrDefault();
+                        if (bag_gem == null || bag_gem.item == null)
+                        {
+                            continue;
+                        }
+                        Log("Equipping gem {0} (score: {1}) into item: {2}, slot id: {3}, colour: {4}", bag_gem.item.Name, bag_gem.score, equipped_item.Name, gemslot + 1, equipped_item.ItemInfo.SocketColor[gemslot]);
+                        Lua.DoString("ClearCursor(); SocketInventoryItem({0}); PickupContainerItem({1}, {2}); ClickSocketButton({3}); AcceptSockets(); ClearCursor(); CloseSocketInfo();", (int)slot, bag_gem.item.BagIndex + 1, bag_gem.item.BagSlot + 1, gemslot + 1);
+                        EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                        return;
+                    }
+                }
             }
         }
 
