@@ -258,7 +258,6 @@ namespace EquipMe
                         var bag_gem =
                             (from item in StyxWoW.Me.BagItems
                              where item.ItemInfo.ItemClass == WoWItemClass.Gem && !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(item.Guid)
-                             where StyxWoW.Me.CanEquipItem(item)
                              let score = CalcScore(item)
                              where score > 0 && GemFitsIn(item.ItemInfo.GemClass, equipped_item.GetSocketColor(gemslot))
                              orderby score descending
