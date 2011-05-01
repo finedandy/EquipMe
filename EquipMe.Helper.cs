@@ -307,7 +307,6 @@ namespace EquipMe
                         break;
                     }
                 }
-                EquipMeSettings.Instance.SaveSettings();
                 foreach (var kvp in EquipMeSettings.Instance.WeightSet_Current.Weights.Where(they => they.Value > 0))
                 {
                     Log("- {0} = {1}", kvp.Key, kvp.Value);
@@ -316,6 +315,8 @@ namespace EquipMe
             catch (Exception ex)
             {
                 Log("Unable to update weight set from wowhead, exception:\n{0}", ex);
+                Log("Using lowbie weightset");
+                EquipMeSettings.Instance.WeightSet_Current = EquipMeSettings.WeightSet_Lowbie;
             }
         }
 

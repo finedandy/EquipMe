@@ -162,12 +162,14 @@ namespace EquipMe
             // don't try to pulse when the settings form is up
             if (_settingsForm != null && _settingsForm.Visible)
             {
+                EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                 return;
             }
 
             // if we're in combat set to next, wait for out of combat
             if (StyxWoW.Me.Combat)
             {
+                EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                 return;
             }
             else // otherwise set to pulsefreq in settings and continue
@@ -177,8 +179,17 @@ namespace EquipMe
 
             if (string.Equals(EquipMeSettings.Instance.WeightSetName, "blank", StringComparison.OrdinalIgnoreCase))
             {
-                Log("Updating blank stats from wowhead");
-                UpdateWowhead();
+                if (StyxWoW.Me.Level < 10)
+                {
+                    Log("Using lowbie weight settings");
+                    EquipMeSettings.Instance.WeightSet_Current = EquipMeSettings.WeightSet_Lowbie;
+                }
+                else
+                {
+                    Log("Updating blank stats from wowhead");
+                    UpdateWowhead();
+                }
+                EquipMeSettings.Instance.SaveSettings();
             }
             // enumerate each item
             foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(i.Guid)))
@@ -198,28 +209,26 @@ namespace EquipMe
                     {
                         // get a list of equipped items and their scores
                         var equipped_items = GetReplaceableItems(item_inv.ItemInfo, item_inv.IsSoulbound);
-                        if (equipped_items.Count <= 0)
+                        if (equipped_items.Count > 0)
                         {
-                            //Log("No replaceable items for: {0}", item_inv.Name);
-                            continue;
-                        }
-                        var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
-                        //Log("Checking item {0} - {1}", item_inv, item_score);
-                        if (worst_item.Key != null && item_score > worst_item.Value.score)
-                        {
-                            // check the bag doesn't exist inside the bag it's trying to replace
-                            if (worst_item.Key.ItemInfo.BagSlots > 0 && worst_item.Key.Guid == item_inv.ContainerGuid)
+                            var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
+                            //Log("Checking item {0} - {1}", item_inv, item_score);
+                            if (worst_item.Key != null && item_score > worst_item.Value.score)
                             {
-                                // don't try equip a bag inside another bag, move bag to backpack first
-                                Log("Moving bag: {0} into main backpack before equip.", item_inv.Name);
-                                Lua.DoString("local slot = 1; for checkslot=1,16 do if GetContainerItemID(0, checkslot) == nil then slot = checkslot; break; end; end; ClearCursor(); PickupContainerItem({0}, {1}); PickupContainerItem(0, slot); ClearCursor();", item_inv.BagIndex + 1, item_inv.BagSlot + 1);
+                                // check the bag doesn't exist inside the bag it's trying to replace
+                                if (worst_item.Key.ItemInfo.BagSlots > 0 && worst_item.Key.Guid == item_inv.ContainerGuid)
+                                {
+                                    // don't try equip a bag inside another bag, move bag to backpack first
+                                    Log("Moving bag: {0} into main backpack before equip.", item_inv.Name);
+                                    Lua.DoString("local slot = 1; for checkslot=1,16 do if GetContainerItemID(0, checkslot) == nil then slot = checkslot; break; end; end; ClearCursor(); PickupContainerItem({0}, {1}); PickupContainerItem(0, slot); ClearCursor();", item_inv.BagIndex + 1, item_inv.BagSlot + 1);
+                                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                                    return;
+                                }
+                                Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
+                                DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, worst_item.Value.slot);
                                 EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                                 return;
                             }
-                            Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
-                            DoEquip(item_inv.BagIndex + 1, item_inv.BagSlot + 1, worst_item.Value.slot);
-                            EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
-                            return;
                         }
                     }
                 }

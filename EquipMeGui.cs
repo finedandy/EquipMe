@@ -19,6 +19,7 @@ namespace EquipMe
 
         private void EquipMeGui_Load(object sender, EventArgs e)
         {
+            EquipMeSettings.Instance.LoadSettings();
             UpdatePropertyGrids();
         }
 
