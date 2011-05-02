@@ -428,7 +428,7 @@ namespace EquipMe
             {
                 return null;
             }
-            if (weightElm == null)
+            if (weightElm == null || weightElm.IsEmpty)
             {
                 Log("Error reading file: {0}, no data read!", path);
                 return null;
