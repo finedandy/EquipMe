@@ -581,7 +581,7 @@ namespace EquipMe
         public static bool IsWeaponClassInString(WoWItemWeaponClass clazz, string str)
         {
             if (str.Split(',').Where(slotstr => !string.IsNullOrEmpty(slotstr.Trim())).Any(slotstr =>
-                (WoWItemWeaponClass)ToUnsignedInteger(slotstr) == clazz ||
+                ToInteger(slotstr) == (int)clazz ||
                 string.Equals(clazz.ToString(), slotstr, StringComparison.OrdinalIgnoreCase)))
             {
                 return true;

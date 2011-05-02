@@ -237,7 +237,7 @@ namespace EquipMe
                 {
                     continue;
                 }
-                EquipMe.Log("Equipped: {0}, score: {1}, inv type: {2}, wep class {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
+                EquipMe.Log("Equipped: {0}, score: {1}, inv type: {2}, wep class: {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
             }
             foreach (var item in StyxWoW.Me.BagItems)
             {
@@ -245,7 +245,7 @@ namespace EquipMe
                 {
                     continue;
                 }
-                EquipMe.Log("Bag: {0}, score: {1}, inv type: {2}, wep class {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
+                EquipMe.Log("Bag: {0}, score: {1}, inv type: {2}, wep class: {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
             }
         }
 
