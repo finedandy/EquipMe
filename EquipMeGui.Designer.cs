@@ -38,6 +38,7 @@
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -96,6 +97,7 @@
             // 
             // tabPage3
             // 
+            this.tabPage3.Controls.Add(this.button4);
             this.tabPage3.Controls.Add(this.button3);
             this.tabPage3.Controls.Add(this.checkBox1);
             this.tabPage3.Controls.Add(this.button1);
@@ -153,6 +155,16 @@
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(8, 141);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(107, 26);
+            this.button4.TabIndex = 12;
+            this.button4.Text = "Dump scores";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
             // EquipMeGui
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -184,6 +196,7 @@
         private System.Windows.Forms.CheckBox checkBox1;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button button4;
 
     }
 }

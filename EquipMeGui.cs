@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Forms;
+using Styx;
 using Styx.Helpers;
 using Styx.Logic.Inventory;
 
@@ -227,6 +228,26 @@ namespace EquipMe
         }
 
         #endregion
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            foreach (var item in StyxWoW.Me.Inventory.Equipped.Items)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+                EquipMe.Log("Equipped: {0}, score: {1}, inv type: {2}, wep class {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
+            }
+            foreach (var item in StyxWoW.Me.BagItems)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+                EquipMe.Log("Bag: {0}, score: {1}, inv type: {2}, wep class {3}", item.Name, EquipMe.CalcScore(item), item.ItemInfo.InventoryType, item.ItemInfo.WeaponClass);
+            }
+        }
 
     }
 }
