@@ -39,6 +39,8 @@ namespace EquipMe
 
             "ITEM_PUSH",
 
+            "USE_BIND_CONFIRM",
+            "LOOT_BIND_CONFIRM",
             "EQUIP_BIND_CONFIRM",
             "AUTOEQUIP_BIND_CONFIRM",
         };
@@ -123,11 +125,19 @@ namespace EquipMe
                     // do a barrel roll
                     DoItemRoll(id);
                 }
-                else if (args.EventName.StartsWith("CONFIRM_")) // confirms loot rolling "will be bound"
+                else if (args.EventName.StartsWith("CONFIRM_")) // confirms loot+de rolling "will be bound"
                 {
                     Lua.DoString("ConfirmLootRoll(" + args.Args.ElementAtOrDefault(0) + "," + args.Args.ElementAtOrDefault(1) + ")");
                 }
-                else if (args.EventName.EndsWith("_CONFIRM")) // confirms equip popup "will bind it to you"
+                else if (args.EventName == "LOOT_BIND_CONFIRM") // confirms another will bind it to you popup
+                {
+                    Lua.DoString("ConfirmLootSlot(" + args.Args.FirstOrDefault() + ")");
+                }
+                else if (args.EventName == "USE_BIND_CONFIRM") // confirms bop loot
+                {
+                    Lua.DoString("ConfirmBindOnUse()");
+                }
+                else if (args.EventName.EndsWith("_CONFIRM")) // confirms (auto)equip popup "will bind it to you"
                 {
                     Lua.DoString("EquipPendingItem(" + args.Args.FirstOrDefault() + ")");
                 }
