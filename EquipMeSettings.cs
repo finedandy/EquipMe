@@ -339,7 +339,7 @@ namespace EquipMe
         public string WeaponMainHand { get; set; }
 
         [Setting]
-        [DefaultValue("")]
+        [DefaultValue("-1")]
         [Category("Character")]
         [DisplayName("Off Hand Type")]
         [Description("Will only try to equip weapons of this type into the offhand slot (none = equips all weapon types available for your class). Available values: \n" +
