@@ -801,7 +801,7 @@ namespace EquipMe
         /// <param name="slot">inv slot</param>
         public static void DoEquip(int bagindex, int bagslot, InventorySlot slot)
         {
-            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2}); ClearCursor();", bagindex + 1, bagslot + 1, (int)slot);
+            Lua.DoString("ClearCursor(); PickupContainerItem({0}, {1}); EquipCursorItem({2})", bagindex + 1, bagslot + 1, (int)slot);
         }
 
         #endregion

@@ -131,7 +131,7 @@ namespace EquipMe
                 }
                 else if (args.EventName == "LOOT_BIND_CONFIRM") // confirms another will bind it to you popup
                 {
-                    Lua.DoString("ConfirmLootSlot(" + args.Args.FirstOrDefault() + ")");
+                    Lua.DoString("ConfirmLootSlot(" + args.Args.ElementAtOrDefault(0) + ")");
                 }
                 else if (args.EventName == "USE_BIND_CONFIRM") // confirms bop loot
                 {
@@ -139,7 +139,7 @@ namespace EquipMe
                 }
                 else if (args.EventName.EndsWith("_CONFIRM")) // confirms (auto)equip popup "will bind it to you"
                 {
-                    Lua.DoString("EquipPendingItem(" + args.Args.FirstOrDefault() + ")");
+                    Lua.DoString("EquipPendingItem(" + args.Args.ElementAtOrDefault(0) + ")");
                 }
                 else if (args.EventName == "ITEM_PUSH") // pulse shortly after we get an item
                 {
@@ -150,6 +150,7 @@ namespace EquipMe
                     Log("Reading new settings (context:{0})", args.EventName);
                     EquipMeSettings.Instance.LoadSettings();
                 }
+                LogDebug("event({0}) - {1}", args.EventName, args.Args.Aggregate((a, b) => a.ToString() + "," + b.ToString()));
             }
             catch (Exception ex)
             {
