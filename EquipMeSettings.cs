@@ -27,24 +27,29 @@ namespace EquipMe
         /// </summary>
         /// <param name="weights">if it's a weights file or otherwise just a settings file</param>
         /// <returns>path to settings</returns>
-        public string GetSettingsPath(SettingsType type)
+        public static string GetSettingsPath(SettingsType type, bool pvp)
         {
-            return Logging.ApplicationPath + "\\Settings\\EquipMe\\EquipMe_" + StyxWoW.Me.Name + "_" + EquipMe.GetSpecName() + (UsePVP && Styx.Logic.Battlegrounds.IsInsideBattleground ? "_PVP" : "") + "_" + type.ToString() + ".xml";
+            return Logging.ApplicationPath + "\\Settings\\EquipMe\\EquipMe_" + StyxWoW.Me.Name + "_" + EquipMe.GetSpecName() + (pvp && Styx.Logic.Battlegrounds.IsInsideBattleground ? "_PVP" : "") + "_" + type.ToString() + ".xml";
         }
 
         /// <summary>
         /// Constructor, load the settings
         /// </summary>
         public EquipMeSettings()
-            : base(Logging.ApplicationPath + Path.PathSeparator) // take that you shitty default constructor
+            : base(GetSettingsPath(SettingsType.Settings, false))
         {
-            LoadSettings();
+            LoadSettings(true);
+        }
+
+        public void LoadSettings()
+        {
+            LoadSettings(false);
         }
 
         /// <summary>
         /// (re)loads settings
         /// </summary>
-        public void LoadSettings()
+        public void LoadSettings(bool constructor)
         {
             _currentSpec = null;
             BlacklistedInventoryItems.Clear();
@@ -52,10 +57,10 @@ namespace EquipMe
             //
             try
             {
-                base.LoadFromXML(XElement.Load(GetSettingsPath(SettingsType.Settings)));
+                base.LoadFromXML(XElement.Load(GetSettingsPath(SettingsType.Settings, UsePVP)));
             }
             catch (Exception) { }
-            var _path = GetSettingsPath(SettingsType.Weights);
+            var _path = GetSettingsPath(SettingsType.Weights, UsePVP);
             EquipMe.Log("Loading weights from: {0}", _path);
             var newset = EquipMe.LoadWeightSetFromXML(_path);
             if (newset != null)
@@ -77,8 +82,8 @@ namespace EquipMe
             BlacklistedInventoryItems.Clear();
             NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
             //
-            base.SaveToFile(GetSettingsPath(SettingsType.Settings));
-            var _path = GetSettingsPath(SettingsType.Weights);
+            base.SaveToFile(GetSettingsPath(SettingsType.Settings, UsePVP));
+            var _path = GetSettingsPath(SettingsType.Weights, UsePVP);
             XElement saveElm = File.Exists(_path) ? XElement.Load(_path) : new XElement("WeightSet");
             saveElm.SetAttributeValue("Name", WeightSet_Current.Name);
             foreach (KeyValuePair<Stat, float> setval in WeightSet_Current.Weights)
