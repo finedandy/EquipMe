@@ -150,7 +150,7 @@ namespace EquipMe
                     Log("Reading new settings (context:{0})", args.EventName);
                     EquipMeSettings.Instance.LoadSettings();
                 }
-                LogDebug("event({0}) - {1}", args.EventName, args.Args.Aggregate((a, b) => a.ToString() + "," + b.ToString()));
+                LogDebug("event({0}) - {1}", args.EventName, (args.Args.Length > 0 ? args.Args.Aggregate((a, b) => a.ToString() + "," + b.ToString()) : ""));
             }
             catch (Exception ex)
             {
