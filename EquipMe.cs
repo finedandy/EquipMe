@@ -205,46 +205,48 @@ namespace EquipMe
             // enumerate each item
             foreach (var item_inv in StyxWoW.Me.BagItems.Where(i => !EquipMeSettings.Instance.BlacklistedInventoryItems.Contains(i.Guid)))
             {
-                if (StyxWoW.Me.CanEquipItem(item_inv))
+                if (!StyxWoW.Me.CanEquipItem(item_inv))
                 {
-                    var item_score = CalcScore(item_inv);
-                    var emptySlot = InventorySlot.None;
-                    if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
+                    // blacklist if we didn't/can't equip it
+                    EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
+                    continue;
+                }
+                var item_score = CalcScore(item_inv);
+                var emptySlot = InventorySlot.None;
+                if (HasEmpty(item_inv.ItemInfo, out emptySlot) && item_score > 0)
+                {
+                    Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, (InventorySlot)emptySlot);
+                    DoEquip(item_inv.BagIndex, item_inv.BagSlot, emptySlot);
+                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                    EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
+                    return;
+                }
+                // get a list of equipped items and their scores
+                var equipped_items = GetReplaceableItems(item_inv.ItemInfo, item_inv.IsSoulbound);
+                if (equipped_items.Count <= 0)
+                {
+                    EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
+                    continue;
+                }
+                var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
+                //Log("Checking item {0} - {1}", item_inv, item_score);
+                if (worst_item.Key != null && item_score > worst_item.Value.score)
+                {
+                    // check the bag doesn't exist inside the bag it's trying to replace
+                    if (worst_item.Key.ItemInfo.BagSlots > 0 && worst_item.Key.Guid == item_inv.ContainerGuid)
                     {
-                        Log("Equipping {0} (score: {1}) into empty slot: {2}", item_inv.Name, item_score, (InventorySlot)emptySlot);
-                        DoEquip(item_inv.BagIndex, item_inv.BagSlot, emptySlot);
+                        // don't try equip a bag inside another bag, move bag to backpack first
+                        Log("Moving bag: {0} into main backpack before equip.", item_inv.Name);
+                        Lua.DoString("local slot = 1; for checkslot=1,16 do if GetContainerItemID(0, checkslot) == nil then slot = checkslot; break; end; end; ClearCursor(); PickupContainerItem({0}, {1}); PickupContainerItem(0, slot); ClearCursor();", item_inv.BagIndex + 1, item_inv.BagSlot + 1);
                         EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
                         return;
                     }
-                    else
-                    {
-                        // get a list of equipped items and their scores
-                        var equipped_items = GetReplaceableItems(item_inv.ItemInfo, item_inv.IsSoulbound);
-                        if (equipped_items.Count > 0)
-                        {
-                            var worst_item = equipped_items.OrderBy(ret => ret.Value.score).FirstOrDefault();
-                            //Log("Checking item {0} - {1}", item_inv, item_score);
-                            if (worst_item.Key != null && item_score > worst_item.Value.score)
-                            {
-                                // check the bag doesn't exist inside the bag it's trying to replace
-                                if (worst_item.Key.ItemInfo.BagSlots > 0 && worst_item.Key.Guid == item_inv.ContainerGuid)
-                                {
-                                    // don't try equip a bag inside another bag, move bag to backpack first
-                                    Log("Moving bag: {0} into main backpack before equip.", item_inv.Name);
-                                    Lua.DoString("local slot = 1; for checkslot=1,16 do if GetContainerItemID(0, checkslot) == nil then slot = checkslot; break; end; end; ClearCursor(); PickupContainerItem({0}, {1}); PickupContainerItem(0, slot); ClearCursor();", item_inv.BagIndex + 1, item_inv.BagSlot + 1);
-                                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
-                                    return;
-                                }
-                                Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
-                                DoEquip(item_inv.BagIndex, item_inv.BagSlot, worst_item.Value.slot);
-                                EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
-                                return;
-                            }
-                        }
-                    }
+                    Log("Equipping {0} (score: {1}) over equipped {2} (score: {3}) - slot: {4}", item_inv.Name, item_score, worst_item.Key.Name, worst_item.Value.score, worst_item.Value.slot);
+                    DoEquip(item_inv.BagIndex, item_inv.BagSlot, worst_item.Value.slot);
+                    EquipMeSettings.Instance.NextPulse = DateTime.Now + TimeSpan.FromSeconds(1);
+                    EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
+                    return;
                 }
-                // blacklist if we didn't/can't equip it
-                EquipMeSettings.Instance.BlacklistedInventoryItems.Add(item_inv.Guid);
             }
 
             if (EquipMeSettings.Instance.GemEquipped)
